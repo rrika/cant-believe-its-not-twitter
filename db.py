@@ -1,4 +1,4 @@
-import json, os
+import json, os, base64
 from urllib.parse import urlparse, parse_qs
 
 class DB:
@@ -6,11 +6,21 @@ class DB:
 		self.tweets = {}
 		self.profiles = {}
 		self.by_user = {}
+		self.likes_map = {}
+		self.likes_sorted = {}
 
 	def sort_profiles(self):
+		# tweets in reverse chronological order
 		for tids in self.by_user.values():
 			tids[:] = set(tids)
 			tids.sort(key=lambda twid: -twid)
+
+		# likes in reverse chronological order
+		for uid, likes in self.likes_map.items():
+			l = [(-sort_index, twid) for twid, sort_index in likes.items()]
+			l.sort()
+			l = [twid for neg_sort_index, twid in l]
+			self.likes_sorted[uid] = l
 
 	# queries
 
@@ -26,6 +36,9 @@ class DB:
 		return [twid for twid in self.by_user.get(uid, []) if
 			len(self.tweets.get(twid, {}).get("entities", {}).get("media", [])) > 0
 		]
+
+	def get_user_likes(self, uid):
+		return self.likes_sorted.get(uid, [])
 
 	# loading
 
@@ -225,7 +238,17 @@ class DB:
 			gql_vars = self.get_gql_vars(context) or {}
 			whose_likes = int(gql_vars["userId"])
 			likes_timeline = self.add_user(data["user"]["result"], give_timeline_v2=True)
-			self.add_with_instructions(likes_timeline["timeline"])
+			layout, cursors = self.add_with_instructions(likes_timeline["timeline"])
+			user_likes = self.likes_map.setdefault(whose_likes, {})
+			for entry in layout:
+				if entry is None:
+					continue # non-tweet timeline item
+				sort_index, name, twid = entry
+				if twid is None:
+					continue # tweet deleted or on locked account
+				assert isinstance(twid, int)
+				user_likes[twid] = max(sort_index, user_likes.get(twid, sort_index))
+
 		elif path.endswith("/Following"):
 			followings_timeline = self.add_user(data["user"]["result"], give_timeline_v1=True)
 			self.add_with_instructions(followings_timeline["timeline"])
@@ -290,7 +313,7 @@ class DB:
 			data = json.loads(data)
 		except:
 			print("not json", fname, path)
-			raise
+			return
 
 		if url.startswith("https://twitter.com/i/api/graphql/"):
 			print("adding  ", fname, path)
@@ -299,13 +322,25 @@ class DB:
 			print("skipping", fname, path)
 
 	def load_har(self, har):
+		any_missing = False
 		for entry in har["log"]["entries"]:
 			url = entry["request"]["url"]
 			response = entry["response"]["content"]
 			if response:
 				context = {"url": url}
+				if "text" not in response:
+					print("missing ", url)
+					if "comment" in response:
+						print(" ", response["comment"])
+					any_missing = True
+					continue
 				data = response["text"]
+				if response.get("encoding", None) == "base64":
+					data = base64.b64decode(data)
 				self.load_api(data, context)
+
+		if any_missing:
+			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")
 
 db = DB()
 

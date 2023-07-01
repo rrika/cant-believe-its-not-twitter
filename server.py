@@ -46,6 +46,9 @@ class ClientAPI:
 	def media_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_media(uid)]
 
+	def likes_view(self, uid):
+		return [self.get_tweet(twid) for twid in self.db.get_user_likes(uid)]
+
 	# users
 
 	def get_profile(self, uid):
@@ -79,6 +82,13 @@ def profile(uid):
 	return {
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.media_view(uid) #[:200]
+	}
+
+@route('/api/likes/<uid:int>')
+def profile(uid):
+	return {
+		"topProfile": ca.get_profile(uid),
+		"tweets": ca.likes_view(uid) #[:200]
 	}
 
 @route('/api/everyone')

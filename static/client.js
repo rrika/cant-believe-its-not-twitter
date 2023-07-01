@@ -86,11 +86,25 @@ let TweetActions = (props) => h("div", { class: "t20230403-actions" },
             h("svg", { class: "t20230403-action-icon", viewBox: "0 0 24 24" },
                 h("g", null,
                     h("path", { d: "M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.3 3.3-1.41-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z" }))))));
-let TweetImage = (props) => h("div", { class: "t20230624-media-rounded-corners" },
-    h("div", { class: "t20230624-media-relative" },
-        h("div", { class: "t20230624-image-aspect-keeper" }),
-        h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` } }),
-        " "));
+let MediaGrid = (props) => {
+    let items = props.items;
+    return h("div", { class: "t20230624-embed-rounded-corners" },
+        h("div", { class: "t20230624-media-relative" },
+            h("div", { class: "t20230624-media-aspect-keeper" }),
+            items.length == 0 ? [] :
+                items.length == 1 ? items[0] :
+                    items.length == 2 ?
+                        h("div", { class: "t20230701-media-hdiv" }, items) :
+                        items.length == 3 ?
+                            h("div", { class: "t20230701-media-hdiv" },
+                                items[0],
+                                h("div", { class: "t20230701-media-vdiv" }, [items[1], items[2]]))
+                            :
+                                h("div", { class: "t20230701-media-hdiv" },
+                                    h("div", { class: "t20230701-media-vdiv" }, [items[0], items[1]]),
+                                    h("div", { class: "t20230701-media-vdiv" }, [items[2], items[3]]))));
+};
+let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` } }); /*todo: proper escape*/
 let Tweet = (props) => {
     let t = props.t;
     let id_str = props.t.id_str;
@@ -108,11 +122,13 @@ let Tweet = (props) => {
         console.log(t);
     };
     let userPath = "/" + props.u.screen_name;
-    let medias = [];
-    for (let media of (props.t.entities.media || []))
-        medias.push(h(TweetImage, { src: media.media_url_https }));
+    let embeds = [];
+    if (props.t.entities.media !== undefined) {
+        let items = props.t.entities.media.map((media) => h(TweetImage, { src: media.media_url_https }));
+        embeds.push(h(MediaGrid, { items: items }));
+    }
     if (t.quoted_status)
-        medias.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user }));
+        embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user }));
     return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0, onClick: selectTweet },
         h("div", { class: "t20230403-avatar-column" },
             h("a", { href: userPath, onClick: selectUser },
@@ -129,12 +145,12 @@ let Tweet = (props) => {
                 h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, "34m"),
                 h("span", { class: "t20230403-user-line-menu" })),
             h("div", { class: "t20230403-contents" }, props.t.full_text),
-            medias && h("div", { class: "t20230624-media" }, medias),
+            embeds && h("div", { class: "t20230624-embeds" }, embeds),
             h(TweetActions, { t: props.t })));
 };
 let QuotedTweet = (props) => {
     let userPath = "/" + props.u.screen_name;
-    return h("div", { class: "t20230624-media-rounded-corners" },
+    return h("div", { class: "t20230624-embed-rounded-corners" },
         h("div", { class: "t20230630-qrt-top" },
             h("div", { class: "t20230403-user-line" },
                 h("a", { class: "t20230403-user-line-displayname", href: userPath }, props.u.name),

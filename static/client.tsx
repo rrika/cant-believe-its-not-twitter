@@ -1,4 +1,4 @@
-import { h, render, Component, Fragment, JSX } from 'preact';
+import { h, render, Component, Fragment, JSX, VNode } from 'preact';
 
 type LegacyProfile = {
 	description: string,
@@ -136,13 +136,34 @@ let TweetActions = (props: {t: TweetInfo}) =>
 		</div></div>
 	</div>;
 
-let TweetImage = (props: {src: string}) =>
-	<div class="t20230624-media-rounded-corners">
+let MediaGrid = (props: {items: VNode<any>[]}) => {
+	let items = props.items;
+	return <div class="t20230624-embed-rounded-corners">
 		<div class="t20230624-media-relative">
-			<div class="t20230624-image-aspect-keeper"></div>
-			<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}}></div> {/*todo: proper escape*/}
+			<div class="t20230624-media-aspect-keeper"></div>
+			{
+				items.length == 0 ? [] :
+				items.length == 1 ? items[0] :
+				items.length == 2 ?
+					<div class="t20230701-media-hdiv">{items}</div> :
+				items.length == 3 ?
+					<div class="t20230701-media-hdiv">
+						{items[0]}
+						<div class="t20230701-media-vdiv">{[items[1], items[2]]}</div>
+					</div>
+				:
+					<div class="t20230701-media-hdiv">
+						<div class="t20230701-media-vdiv">{[items[0], items[1]]}</div>
+						<div class="t20230701-media-vdiv">{[items[2], items[3]]}</div>
+					</div>
+
+			}
 		</div>
-	</div>;
+	</div>
+};
+
+let TweetImage = (props: {src: string}) =>
+	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}}></div>; /*todo: proper escape*/
 
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
@@ -162,11 +183,13 @@ let Tweet = (props: TweetProps) => {
 	};
 	let userPath = "/"+props.u.screen_name;
 
-	let medias = [];
-	for (let media of (props.t.entities.media || []))
-		medias.push(<TweetImage src={media.media_url_https}/>);
+	let embeds = [];
+	if (props.t.entities.media !== undefined) {
+		let items = props.t.entities.media.map((media) => <TweetImage src={media.media_url_https}/>);
+		embeds.push(<MediaGrid items={items}/>);
+	}
 	if (t.quoted_status)
-		medias.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user}/>);
+		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user}/>);
 
 	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0} onClick={selectTweet}>
 		<div class="t20230403-avatar-column">
@@ -186,7 +209,7 @@ let Tweet = (props: TweetProps) => {
 				<span class="t20230403-user-line-menu"></span>
 			</div>
 			<div class="t20230403-contents">{props.t.full_text}</div>
-			{medias && <div class="t20230624-media">{medias}</div>}
+			{embeds && <div class="t20230624-embeds">{embeds}</div>}
 			<TweetActions t={props.t}/>
 		</div>
 	</div>;
@@ -194,7 +217,7 @@ let Tweet = (props: TweetProps) => {
 
 let QuotedTweet = (props: TweetProps) => {
 	let userPath = "/"+props.u.screen_name;
-	return <div class="t20230624-media-rounded-corners">
+	return <div class="t20230624-embed-rounded-corners">
 		<div class="t20230630-qrt-top">
 			<div class="t20230403-user-line">
 				<a class="t20230403-user-line-displayname" href={userPath}>{props.u.name}</a>

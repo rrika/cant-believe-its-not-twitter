@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
+    "baseUrl": ".",
+    "target": "es2018",
+    "module": "es2015",
+    "moduleResolution": "node"
+  },
+  "files": [
+    "static/client.tsx"
+  ]
+}

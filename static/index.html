@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style>
+		@font-face {
+		  font-family: TwitterChirp;
+		  src: url(responsive-web/client-web/Chirp-Light.3a18e64a.woff2) format('woff2'), url(responsive-web/client-web/Chirp-Light.7a5673aa.woff) format('woff');
+		  font-weight: 300;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+		@font-face {
+		  font-family: TwitterChirp;
+		  src: url(responsive-web/client-web/Chirp-Regular.80fda27a.woff2) format('woff2'), url(responsive-web/client-web/Chirp-Regular.60b215ba.woff) format('woff');
+		  font-weight: 400;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+		@font-face {
+		  font-family: TwitterChirp;
+		  src: url(responsive-web/client-web/Chirp-Medium.f8e2739a.woff2) format('woff2'), url(responsive-web/client-web/Chirp-Medium.20fc288a.woff) format('woff');
+		  font-weight: 500;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+		@font-face {
+		  font-family: TwitterChirp;
+		  src: url(responsive-web/client-web/Chirp-Bold.ebb56aba.woff2) format('woff2'), url(responsive-web/client-web/Chirp-Bold.a573679a.woff) format('woff');
+		  font-weight: 700;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+		@font-face {
+		  font-family: TwitterChirp;
+		  src: url(responsive-web/client-web/Chirp-Heavy.f44ae4ea.woff2) format('woff2'), url(responsive-web/client-web/Chirp-Heavy.d70ec7ca.woff) format('woff');
+		  font-weight: 800;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+		@font-face {
+		  font-family: TwitterChirpExtendedHeavy;
+		  src: url(fonts/v1/chirp-extended-heavy-web.woff2) format('woff2'), url(fonts/v1/chirp-extended-heavy-web.woff) format('woff');
+		  font-weight: 800;
+		  font-style: 'normal';
+		  font-display: 'swap';
+		}
+	</style>
+	<style>
+		.common-frame-600 {
+			box-shadow: 0 0 20px gray;
+			margin: 2em;
+			max-width: 600px;
+		}
+
+		.common-frame-590 {
+			line-height: 20px;
+			font-size: 14px;
+			box-shadow: 0 0 20px gray;
+			margin: 2em;
+			max-width: 590px;
+		}
+
+		.t20230403-timeline {
+			box-sizing: border-box;
+			margin-left: 0;
+			margin-right: 0;
+			max-width: 600px;
+			min-height: 400px;
+		}
+		.theme-light .t20230403-timeline {
+			background-color: rgb(255, 255, 255);
+			border: 1px solid rgb(239, 243, 244);
+			border-top: 0px;
+			border-bottom: 0px;
+		}
+		.theme-dim .t20230403-timeline {
+			background-color: rgb(21, 32, 43);
+			border: 1px solid rgb(56, 68, 77);
+			border-top: 0px;
+			border-bottom: 0px;
+		}
+		.t20230628-timeline-header {
+			background-color: rgba(21, 32, 43, 0.75);
+			position: relative;
+			z-index: 2;
+		}
+		.t20230628-timeline-header-home {
+			height: 53px;
+			padding-left: 16px;
+			padding-right: 16px;
+			display: flex;
+
+			flex-direction: column;
+			justify-content: center;
+		}
+		.t20230628-timeline-header-home > h2 {
+			line-height: 24px;
+			font-size: 20px;
+			font-weight: 700;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.theme-dim .t20230628-timeline-header-home > h2 {
+			color: rgb(247, 249, 249);
+		}
+		.t20230628-timeline-header-profile {
+			height: 53px;
+			padding-left: 16px;
+			padding-right: 16px;
+			display: flex;
+
+			flex-direction: row;
+			align-items: center;
+		}
+		.t20230628-timeline-header-return-button {
+			color: rgb(247, 249, 249);
+			display: flex;
+			min-width: 56px;
+			min-height: 32px;
+		}
+		.t20230628-timeline-header-button {
+			display: flex;
+			min-width: 36px;
+			min-height: 36px;
+			margin-left: -8px;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			border-radius: 9999px;
+		}
+		.t20230628-timeline-header-button:hover {
+			background-color: rgba(239, 243, 244, 0.1);
+		}
+		.t20230628-timeline-header-button:active {
+			background-color: rgba(239, 243, 244, 0.2);
+		}
+		.t20230628-timeline-header-button svg {
+			width: 20px;
+			height: 20px;
+			fill: currentcolor;
+		}
+		.theme-light .t20230403-tweet:hover {
+			background-color: rgba(0, 0, 0, 0.03);
+		}
+		.theme-dim .t20230403-tweet:hover {
+			background-color: rgba(255, 255, 255, 0.03);
+		}
+		.t20230403-tweet {
+			padding-left: 16px;
+			padding-right: 16px;
+			padding-top: 12px; /* when no "retweed by" indicator */
+			padding-bottom: 12px;
+			font-size: 15px;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			display: flex;
+			flex-direction: row;
+		}
+		.theme-light .t20230403-tweet {
+			border-bottom: 1px solid rgb(239, 243, 244);
+		}
+		.theme-dim .t20230403-tweet {
+			border-bottom: 1px solid rgb(56, 68, 77);
+		}
+		.t20230403-tweet-unfocused {
+			cursor: pointer;
+		}
+		.t20230403-avatar-column {
+			width: 48px;
+			margin-right: 12px;
+			display: flex; /* for the thread line */
+			flex-direction: column;
+		}
+		.t20230403-avatar-box {
+			width: 48px;
+			height: 48px;
+			border-radius: 9999px;
+			overflow: hidden;
+		}
+		.t20230403-avatar {
+		}
+		.t20230624-thread-line-below {
+			margin-top: 4px;
+			width: 2px;
+			margin-left: auto;
+			margin-right: auto;
+			flex-grow: 1;
+		}
+		.theme-light .t20230624-thread-line-below {
+			background-color: rgb(207, 217, 222);
+		}
+		.theme-dim .t20230624-thread-line-below {
+			background-color: rgb(66, 83, 100);
+		}
+		.t20230403-main-column {
+			display: flex;
+			flex-direction: column;
+			width: 506px;
+		}
+		.t20230403-user-line {
+			line-height: 20px;
+			display: inline-block;
+		}
+		.t20230403-main-column > .t20230403-user-line {
+			margin-bottom: 2px;
+		}
+		.t20230403-user-line > * {
+			text-decoration: none;
+			outline-style: none;
+		}
+
+		.t20230627-profile-li {
+			cursor: pointer;
+		}
+		.theme-light .t20230627-profile-li:hover {
+			background-color: rgba(0, 0, 0, 0.03);
+		}
+		.theme-dim .t20230627-profile-li:hover {
+			background-color: rgba(255, 255, 255, 0.03);
+		}
+		.t20230627-profile-li-header {
+		}
+		.t20230627-profile-li-header-1 {
+			line-height: 20px;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			text-decoration: none;
+		}
+		.t20230627-profile-li-header-1 > .t20230403-user-line-displayname {
+			margin-right: 2px; /* override 4px from above */
+		}
+		.t20230627-profile-li-header-1 > .t20230403-user-line-displayname:after {
+			vertical-align: middle;
+			display: inline;
+			content: "";
+		}
+		.t20230627-profile-li-header-1:hover > .t20230403-user-line-displayname {
+			text-decoration: underline;
+		}
+		.t20230627-profile-li-header-2 {
+			line-height: 20px;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+		.t20230627-profile-li-bio {
+			padding-top: 4px;
+		}
+		.t20230627-padlock {
+			color: rgb(247, 249, 249);
+			width: 1.25em;
+			height: 1.25em;
+			fill: currentcolor;
+		}
+		.t20230627-profile-badge {
+			line-height: 12px;
+			font-size: 11px;
+			color: rgb(139, 152, 165);
+			background-color: rgb(39, 51, 64);
+			margin-left: 4px;
+			font-weight: 500;
+			padding-left: 4px;
+			padding-right: 4px;
+			padding-bottom: 2px;
+			padding-top: 2px;
+			border-radius: 4px;
+		}
+
+		.t20230403-user-line-displayname:hover {
+			text-decoration: underline;
+		}
+		.t20230403-user-line-time:hover {
+			text-decoration: underline;
+		}
+		.t20230403-user-line-displayname {
+			float: left;
+			margin-right: 4px;
+			font-weight: 700;
+			text-decoration: none;
+			outline-style: none;
+		}
+		.theme-light .t20230403-user-line-displayname {
+			color: rgb(15, 20, 25);
+		}
+		.theme-dim .t20230403-user-line-displayname {
+			color: rgb(247, 249, 249);
+		}
+		.t20230403-user-line-handle {
+			/* font-feature-settings: "ss01"; / * this sucks though */
+		}
+		.t20230403-user-line-handle, .t20230403-user-line-punctuation, .t20230403-user-line-time {
+			float: left;
+			text-decoration: none;
+			outline-style: none;
+		}
+		.theme-light .t20230403-user-line-handle, .theme-light .t20230403-user-line-punctuation, .theme-light .t20230403-user-line-time {
+			color: rgb(83, 100, 113);
+		}
+		.theme-dim .t20230403-user-line-handle, .theme-dim .t20230403-user-line-punctuation, .theme-dim .t20230403-user-line-time {
+			color: rgb(139, 152, 165);
+		}
+		.t20230403-user-line-punctuation {
+			margin-left: 4px;
+			margin-right: 4px;
+		}
+		.t20230403-contents {
+			line-height: 20px;
+		}
+		.theme-light .t20230403-contents {
+			color: rgb(15, 20, 25)
+		}
+		.theme-dim .t20230403-contents {
+			color: rgb(247, 249, 249);
+		}
+		.t20230624-media {
+			/* contains images, quote tweets, etc. in vertical sequence */
+			margin-top: 12px;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		.t20230624-media-rounded-corners {
+			border: 1px solid;
+			border-radius: 16px;
+			box-sizing: border-box;
+			overflow: hidden;
+		}
+		.theme-light .t20230624-media-rounded-corners {
+			border-color: rgb(207, 217, 222);
+		}
+		.theme-dim .t20230624-media-rounded-corners {
+			border-color: rgb(56, 68, 77);
+		}
+		.t20230624-media-relative {
+			position: relative;
+		}
+		.t20230624-image-aspect-keeper {
+			width: 100%;
+			padding-bottom: 75.0977%;
+		}
+		.t20230624-image-div {
+			background-size: cover;
+			background-repeat: no-repeat;
+			background-position: center center;
+			position: absolute;
+			top: 0px;
+			width: 100%;
+			height: 100%;
+		}
+		.t20230630-qrt-top {
+			margin-top: 12px;
+			margin-left: 12px;
+			margin-right: 12px;
+		}
+		.t20230630-qrt-with-media {
+			/* todo */
+		}
+		.t20230630-qrt-bottom {
+			margin-left: 12px;
+			margin-right: 12px;
+			margin-bottom: 12px;
+		}
+		.t20230403-actions {
+			margin-top: 12px;
+			max-width: 425px;
+			line-height: 20px;
+			font-size: 15px;
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+		}
+		.t20230403-action-icon {
+			width: 1.25em;
+			height: 1.25em;
+			fill: currentcolor;
+		}
+		.t20230403-action-text {
+			transform: translate3d(0px, 0px, 0px);
+		}
+		.t20230403-action-text > span {
+			padding-left: 12px;
+			padding-right: 12px;
+			line-height: 16px;
+			font-size: 13px;
+		}
+		.t20230403-action-item-outer.disabled {
+			opacity: 0.5;
+		}
+		.t20230403-action-item-inner {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			outline-style: none;
+		}
+		.theme-dim .t20230403-action-item-inner {
+			color: rgb(139, 152, 165);
+		}
+		.theme-light .t20230403-action-item-inner {
+			color: rgb(83, 100, 113)
+		}
+		.t20230403-action-reply:hover > div {
+			color: rgb(29, 144, 240);
+		}
+		.t20230403-action-rt:hover > div {
+			color: rgb(0, 186, 124);
+		}
+		.t20230403-action-rt.activated > div {
+			color: rgb(0, 186, 124);
+		}
+		.t20230403-action-like:hover > div {
+			color: rgb(249, 24, 128);
+			fill: rgb(249, 24, 128);
+		}
+		.t20230403-action-like.activated > div {
+			color: rgb(249, 24, 128);
+			fill: rgb(249, 24, 128);
+		}
+		.t20230403-action-views:hover > div {
+			color: rgb(29, 144, 240);
+		}
+		.t20230403-action-share:hover > div {
+			color: rgb(29, 144, 240);
+		}
+		.t20230403-action-share {
+			transform: rotate(0deg) scale(1) translate3d(0px, 0px, 0px);
+		}
+		.t20230403-action-share > div{
+			min-height: 20px;
+		}
+		.t20230403-action-like.activated .inactive-icon {
+			display: none;
+		}
+		.t20230403-action-like .active-icon {
+			display: none;
+		}
+		.t20230403-action-like.activated .active-icon {
+			display: inline;
+		}
+		.t20230627-profile-li {
+			padding-bottom: 12px;
+			padding-top: 12px;
+			padding-left: 16px;
+			padding-right: 16px;
+			font-size: 15px;
+			width: 100%;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: row;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.t20230403-contents a {
+			color: rgb(29, 155, 240);
+			text-decoration: none;
+		}
+		.t20230403-contents a:hover {
+			text-decoration: underline;
+		}
+		/*body {
+			background-color: rgb(21, 32, 43);
+			scrollbar-color: rgb(92, 110, 126) rgb(30, 39, 50);
+			margin: 0;
+		}*/
+		.t20230627-page {
+			display: flex;
+			align-items: stretch;
+			width: 100%;
+		}
+		.t20230627-page-left-container {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			flex-grow: 1;
+			user-select: none;
+			position: relative;
+		}
+		.t20230627-page-left {
+			width: 275px;
+		}
+		.t20230627-page-centerright-container {
+			flex-grow: 1;
+			flex-shrink: 1;
+		}
+		.t20230627-page-centerright {
+			width: 990px;
+			display: flex;
+		}
+		.t20230627-page-center {
+			border: 1px solid rgb(56, 68, 77);
+			border-top-width: 0px;
+			border-bottom-width: 0px;
+			width: 100%;
+			max-width: 600px;
+			box-sizing: border-box;
+		}
+		.t20230627-page-right {
+		}
+		.t20230627-profile {
+
+		}
+		.t20230627-profile-banner {
+			display: flex;
+			/* twitter doesn't do this and has ugly scaled banners for it
+			margin-left: -1px;
+			margin-right: -1px; */
+		}
+		.t20230627-profile-banner img {
+			z-index: 0;
+			width: 100%;
+		}
+		.t20230627-profile-info {
+			margin-bottom: 16px;
+			padding-top: 12px;
+			padding-left: 16px;
+			padding-right: 16px;
+			line-height: 20px;
+			font-size: 15px;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.t20230627-profile-picture-and-actions {
+			display: flex;
+		}
+		.t20230627-profile-picture {
+			width: 25%; /* this amounts to 141.5px in the 598px-32px wide space */
+			/* width: 141.5px; */
+			/* height: 141.5px; */
+			margin-top: -15%;
+			margin-bottom: 12px;
+			position: relative;
+		}
+		.t20230627-profile-picture > img {
+			position: absolute;
+			top: 4.5px;
+			left: 4.5px;
+			border-radius: 99999px;
+			width: calc(100% - 8px);
+			height: calc(100% - 8px);
+		}
+		.t20230627-profile-picture > .t20230627-profile-picture-square-aspect {
+			padding-bottom: 100%;
+		}
+		.t20230627-profile-picture > .t20230627-profile-picture-outer-rim {
+			top: 0.5px;
+			left: 0.5px;
+			position: absolute;
+			border-radius: 99999px;
+			width: 100%;
+			height: 100%;
+			background-color: rgb(21, 32, 43);
+		}
+		.t20230627-profile-title {
+			margin-top: 4px;
+			margin-bottom: 12px;
+		}
+		.t20230627-profile-title .t20230627-profile-li-header-1 {
+			line-height: 24px;
+			font-size: 20px;
+		}
+		.t20230627-profile-title .t20230627-profile-li-header-1 .t20230403-user-line-displayname {
+			font-weight: 800;
+		}
+		.t20230627-profile-title .t20230627-profile-li-header-1 svg {
+			max-width: 20px;
+			max-height: 20px;
+		}
+		.t20230627-profile-title .t20230627-profile-li-header-2 {
+			line-height: 20px;
+			font-size: 15px;
+		}
+		.t20230627-profile-description, .t20230627-profile-attributes {
+			margin-bottom: 12px;
+		}
+		.theme-dim .t20230627-profile-description, .theme-dim .t20230627-profile-attributes {
+			color: rgb(247, 249, 249);
+		}
+		.t20230627-profile-numbers {
+
+		}
+		.t20230627-profile-context {
+
+		}
+		.t20230630-navbar {
+			display: flex;
+			flex-direction: row;
+		}
+		.t20230630-navbutton {
+			flex-grow: 1;
+			padding-left: 16px;
+			padding-right: 16px;
+			display: flex;
+			align-items: stretch;
+			justify-content: center;
+			cursor: pointer;
+		}
+		.t20230630-navbutton:hover {
+			background-color: rgba(247, 249, 249, 0.1);
+		}
+		.t20230630-navbutton-text {
+			padding-top: 16px;
+			padding-bottom: 16px;
+			position: relative;
+
+			display: flex;
+			align-items: stretch;
+			justify-content: center;
+
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			font-size: 15px;
+			line-height: 20px;
+			color: rgb(139, 152, 165);
+			font-weight: 500;
+		}
+		.navbar-selected > .t20230630-navbutton-text {
+			color: rgb(247, 249, 249);
+			font-weight: 700;
+		}
+		.navbar-selected > .t20230630-navbutton-text:after {
+			min-width: 56px;
+			height: 4px;
+			position: absolute;
+			bottom: 0px;
+			width: 100%;
+			border-radius: 9999px;
+			background-color: rgb(29, 155, 240);
+			content: "";
+		}
+
+	</style>
+	<script type="importmap">
+		{
+			"imports": {
+			  "preact": "./p/dist/preact.mjs"
+			}
+		}
+	</script>
+	<script type="module" src="p/dist/preact.mjs"></script>
+	<script type="module" src="client.js"></script>
+</head>
+<body>
+	<div class="common-frame-600 theme-dim">
+		<div class="t20230403-timeline" tabindex="0" id="timeline0">
+		</div>
+	</div>
+</body>
+</html>

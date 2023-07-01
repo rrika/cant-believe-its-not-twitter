@@ -1,0 +1,9 @@
+{
+  "name": "x",
+  "version": "1.0.0",
+  "description": "x",
+  "author": "",
+  "devDependencies": {
+    "preact": "^10.15.1"
+  }
+}

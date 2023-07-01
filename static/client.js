@@ -39,6 +39,10 @@ class Logic {
             api_call = `likes/${m[1]}`;
             tab = 3;
         }
+        else if ((m = i.match(/profile\/(\d+)\/bookmarks$/)) !== null) {
+            api_call = `bookmarks/${m[1]}`;
+            tab = 4;
+        }
         else {
             api_call = i; // fall-back
         }
@@ -236,7 +240,8 @@ class App extends Component {
                 `profile/${uid}`,
                 `profile/${uid}/with_replies`,
                 `profile/${uid}/media`,
-                `profile/${uid}/likes`
+                `profile/${uid}/likes`,
+                `profile/${uid}/bookmarks`
             ][index];
             logic.navigate(url);
         };
@@ -244,7 +249,7 @@ class App extends Component {
             h(Header, null),
             top ? h(Fragment, null,
                 h(Profile, { p: top }),
-                h(NavBar, { items: ["Tweets", "Replies", "Media", "Likes"], selected: this.props.tab, onClick: selectTab })) : [],
+                h(NavBar, { items: ["Tweets", "Replies", "Media", "Likes", "Bookmarks"], selected: this.props.tab, onClick: selectTab })) : [],
             (this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })),
             (this.props.tweets || []).map(tweet => h(Tweet, { t: tweet, u: tweet.user })));
     }

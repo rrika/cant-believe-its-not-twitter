@@ -101,6 +101,8 @@ class DB:
 		self.media = MediaStore()
 		self.likes_map = {}
 		self.likes_sorted = {}
+		self.bookmarks_map = {}
+		self.bookmarks_sorted = {}
 
 	def sort_profiles(self):
 		# tweets in reverse chronological order
@@ -110,10 +112,15 @@ class DB:
 
 		# likes in reverse chronological order
 		for uid, likes in self.likes_map.items():
-			l = [(-sort_index, twid) for twid, sort_index in likes.items()]
-			l.sort()
-			l = [twid for neg_sort_index, twid in l]
+			l = sorted(likes.items(), key=lambda a: -a[1])
+			l = [twid for twid, sort_index in l]
 			self.likes_sorted[uid] = l
+
+		# bookmarks in reverse chronological order
+		for uid, bookmarks in self.bookmarks_map.items():
+			l = sorted(bookmarks.items(), key=lambda a: -a[1])
+			l = [twid for twid, sort_index in l]
+			self.bookmarks_sorted[uid] = l
 
 	# queries
 
@@ -132,6 +139,10 @@ class DB:
 
 	def get_user_likes(self, uid):
 		return self.likes_sorted.get(uid, [])
+
+	def get_user_bookmarks(self, uid):
+		uid = None
+		return self.bookmarks_sorted.get(uid, [])
 
 	# loading
 
@@ -292,6 +303,8 @@ class DB:
 			return json.loads(q["variables"][0])
 
 	def load_gql(self, path, data, context):
+		if "data" not in data:
+			return
 		data = data["data"]
 		if path.endswith("/GetUserClaims"):
 			pass
@@ -341,6 +354,18 @@ class DB:
 					continue # tweet deleted or on locked account
 				assert isinstance(twid, int)
 				user_likes[twid] = max(sort_index, user_likes.get(twid, sort_index))
+
+		elif path.endswith("/Bookmarks"):
+			layout, cursors = self.add_with_instructions(data["bookmark_timeline_v2"]["timeline"])
+			user_bookmarks = self.bookmarks_map.setdefault(None, {})
+			for entry in layout:
+				if entry is None:
+					continue # non-tweet timeline item
+				sort_index, name, twid = entry
+				if twid is None:
+					continue # tweet deleted or on locked account
+				assert isinstance(twid, int)
+				user_bookmarks[twid] = max(sort_index, user_bookmarks.get(twid, sort_index))
 
 		elif path.endswith("/Following"):
 			followings_timeline = self.add_user(data["user"]["result"], give_timeline_v1=True)
@@ -435,7 +460,7 @@ class DB:
 				data = response["text"]
 				if response.get("encoding", None) == "base64":
 					data = base64.b64decode(data)
-				self.load_api(data, context, response["mimeType"])
+				self.load_api(data, context, response.get("mimeType", None))
 
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")

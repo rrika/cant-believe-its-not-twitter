@@ -1,6 +1,6 @@
 from db import db
 
-from bottle import route, run, static_file
+from bottle import route, run, static_file, HTTPError
 
 class ClientAPI:
 	def __init__(self, db):
@@ -105,7 +105,12 @@ def resources_20230628(path):
 
 @route('/p/<path:path>')
 def preact_js(path):
-	return static_file(path, root='node_modules/preact/')
+	r = static_file(path, root='node_modules/preact/')
+	if isinstance(r, HTTPError) and path == "dist/preact.mjs":
+		# fall back to bundled preact copy
+		r = static_file('preact.mjs', root='static')
+	return r
+
 
 @route('/<name>.js')
 def client_js(name):

@@ -257,7 +257,7 @@ let Profile2 = (p: LegacyProfile) =>
 				<div class="t20230627-profile-picture">
 						<div class="t20230627-profile-picture-square-aspect"></div>
 						<div class="t20230627-profile-picture-outer-rim"></div>
-						<img alt="Opens profile photo" draggable={true} src={p.profile_image_url_https.replace("normal", "200x200")}/>
+						<img alt="Opens profile photo" draggable={true} src={p.profile_image_url_https && p.profile_image_url_https.replace("normal", "200x200")}/>
 				</div>
 			</div>
 			<div class="t20230627-profile-title">

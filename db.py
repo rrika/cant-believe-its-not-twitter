@@ -1,11 +1,104 @@
 import json, os, base64
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, urlunparse, parse_qs
+
+class OnDisk:
+	def __init__(self, path):
+		self.path = path
+
+class InMemory:
+	def __init__(self, mime, data):
+		self.mime = mime
+		self.data = data
+
+class MediaStore:
+	def __init__(self):
+		self.media_by_url = {}
+		self.media_by_name = {}
+
+	# add images
+
+	def add_from_archive(self, base):
+		r = re.compile(r"(\d+)-([A-Za-z0-9_\-]+)\.(.*)")
+		tweet_media = os.path.join(base, "data", "tweet_media")
+		for media_fname in os.listdir(tweet_media):
+			m = r.match(media_fname)
+			if not m:
+				print("what about", media_fname)
+				continue
+			name = m.group(2)+"."+m.group(3)
+			imageset = self.media_by_name.setdefault(name, [])
+			#fmt = m.group(2)
+			#size = "medium"
+			path = tweet_media+"/"+media_fname
+			#imageset.append((fmt, size, path))
+			imageset.append(OnDisk(path))
+
+	def add_http_snapshot(self, url, mime, body):
+		urlparts = urlparse(url)
+		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
+		name = os.path.basename(urlparts.path)
+		imageset = self.media_by_url.setdefault(cleanurl, [])
+		imageset.append(InMemory(mime, body))
+
+	# check store
+
+	def lookup(self, url):
+		urlparts = urlparse(url)
+		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
+		noexturl = cleanurl.rsplit(".", 1)[0]
+		name = os.path.basename(urlparts.path)
+		imageset = (
+			self.media_by_url.get(cleanurl, []) +
+			self.media_by_url.get(noexturl, []) +
+			self.media_by_name.get(name, []))
+		if imageset:
+			return imageset[0]
+
+# replace urls in tweet/user objects
+
+def urlmap_media(urlmap, media):
+	if "media_url_https" in media:
+		url = media["media_url_https"]
+		url2 = urlmap(url)
+		if url != url2:
+			m = media.copy()
+			m["media_url_https"] = url2
+			return m
+
+def urlmap_media_list(urlmap, media_list):
+	l = []
+	any_patched = False
+	for m in media_list:
+		m2 = urlmap_media(urlmap, m)
+		if m2:
+			l.append(m2)
+			any_patched = True
+		else:
+			l.append(m)
+	if any_patched:
+		return l
+
+def urlmap_entities(urlmap, entities):
+	if "media" in entities:
+		media_list = urlmap_media_list(urlmap, entities["media"])
+		if media_list:
+			entities = entities.copy()
+			entities["media"] = media_list
+			return entities
+
+def urlmap_profile(urlmap, user):
+	user = user.copy()
+	for key in ("profile_image_url_https", "profile_banner_url"):
+		if key in user:
+			user[key] = urlmap(user[key])
+	return user
 
 class DB:
 	def __init__(self):
 		self.tweets = {}
 		self.profiles = {}
 		self.by_user = {}
+		self.media = MediaStore()
 		self.likes_map = {}
 		self.likes_sorted = {}
 
@@ -287,7 +380,7 @@ class DB:
 		else:
 			assert False
 
-	def load_api(self, data, context):
+	def load_api(self, data, context, mime_type):
 		url = context["url"]
 		path = urlparse(url).path
 
@@ -308,6 +401,11 @@ class DB:
 			"/i/api/fleets/"
 		):
 			return # also not interesting for now
+
+		if url.startswith("https://pbs.twimg.com/"):
+			print("media   ", fname, path)
+			self.media.add_http_snapshot(url, mime_type, data)
+			return
 
 		try:
 			data = json.loads(data)
@@ -337,7 +435,7 @@ class DB:
 				data = response["text"]
 				if response.get("encoding", None) == "base64":
 					data = base64.b64decode(data)
-				self.load_api(data, context)
+				self.load_api(data, context, response["mimeType"])
 
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")

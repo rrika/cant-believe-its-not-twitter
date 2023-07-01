@@ -1,6 +1,8 @@
-from db import db
+from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
 
-from bottle import route, run, static_file, HTTPError
+from bottle import route, run, static_file, HTTPError, HTTPResponse
+
+use_twitter_cdn_for_images = False
 
 class ClientAPI:
 	def __init__(self, db):
@@ -8,20 +10,32 @@ class ClientAPI:
 
 	# tweets
 
+	def urlmap(self, url):
+		if self.db.media.lookup(url):
+			return "/media" + url[7:] # /media/pbs.twitter.com/...
+		if use_twitter_cdn_for_images:
+			return url
+
 	def patch(self, tweet):
 		if not tweet:
 			return
 
 		user = self.get_profile(int(tweet.get("user_id_str", -1)))
 
+		entities = None
+		if "entities" in tweet:
+			entities = urlmap_entities(self.urlmap, tweet["entities"])
+
 		quoted_status = None
 		if "quoted_status_id_str" in tweet:
 			quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
 
-		if user or quoted_status:
+		if user or entities or quoted_status:
 			tweet = tweet.copy()
 			if user:
 				tweet["user"] = user
+			if entities:
+				tweet["entities"] = entities
 			if quoted_status:
 				tweet["quoted_status"] = quoted_status
 		return tweet
@@ -56,6 +70,7 @@ class ClientAPI:
 			return None
 		p = self.db.profiles[uid].copy()
 		p["user_id_str"] = str(uid)
+		p = urlmap_profile(self.urlmap, p)
 		return p
 
 	def everyone(self):
@@ -111,6 +126,16 @@ def preact_js(path):
 		r = static_file('preact.mjs', root='static')
 	return r
 
+@route('/media/<path:path>')
+def media(path):
+	item = db.media.lookup("https://"+path)
+	if isinstance(item, OnDisk):
+		return static_file(os.path.basename(item.path), root=os.path.dirname(item.path))
+	elif isinstance(item, InMemory):
+		# todo: caching headers, range queries?
+		return HTTPResponse(item.data, status=200, **{"Content-Type": item.mime})
+	else:
+		return HTTPError(404)
 
 @route('/<name>.js')
 def client_js(name):

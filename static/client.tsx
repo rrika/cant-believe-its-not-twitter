@@ -30,6 +30,7 @@ type TweetInfo = {
 	},
 	user: LegacyProfile,
 	user_id_str: string,
+	created_at: string,
 
 	line?: boolean,
 	quoted_status?: TweetInfo
@@ -169,6 +170,25 @@ let MediaGrid = (props: {items: VNode<any>[]}) => {
 let TweetImage = (props: {src: string}) =>
 	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}}></div>; /*todo: proper escape*/
 
+let dateFormat = (datestr: string) => {
+	let now = new Date();
+	let date = new Date(datestr);
+	let deltaSec = (now.getTime() - date.getTime()) / 1000;
+
+	let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+	if (deltaSec < 60)
+		return "now";
+	if (deltaSec < 60 * 60)
+		return `${Math.floor(deltaSec/60)}m`
+	if (deltaSec < 24 * 60 * 60)
+		return `${Math.floor(deltaSec/60/24)}h`
+
+	if (now.getFullYear() != date.getFullYear())
+		return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+	return `${months[date.getMonth()]} ${date.getDate()}`;
+};
+
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
 	let id_str = props.t.id_str;
@@ -209,7 +229,7 @@ let Tweet = (props: TweetProps) => {
 				<a class="t20230403-user-line-displayname" href={userPath} onClick={selectUser}>{props.u.name}</a>
 				<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
 				<span class="t20230403-user-line-punctuation">·</span>
-				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>34m</a>
+				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{dateFormat(props.t.created_at)}</a>
 				<span class="t20230403-user-line-menu"></span>
 			</div>
 			<div class="t20230403-contents">{props.t.full_text}</div>
@@ -227,7 +247,7 @@ let QuotedTweet = (props: TweetProps) => {
 				<a class="t20230403-user-line-displayname" href={userPath}>{props.u.name}</a>
 				<a class="t20230403-user-line-handle" href={userPath} tabIndex={-1}>@{props.u.screen_name}</a>
 				<span class="t20230403-user-line-punctuation">·</span>
-				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`}>34m</a>
+				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`}>{dateFormat(props.t.created_at)}</a>
 			</div>
 		</div>
 		<div class="t20230630-qrt-bottom t20230403-contents">

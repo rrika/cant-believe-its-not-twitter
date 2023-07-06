@@ -109,6 +109,21 @@ let MediaGrid = (props) => {
                                     h("div", { class: "t20230701-media-vdiv" }, [items[2], items[3]]))));
 };
 let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` } }); /*todo: proper escape*/
+let dateFormat = (datestr) => {
+    let now = new Date();
+    let date = new Date(datestr);
+    let deltaSec = (now.getTime() - date.getTime()) / 1000;
+    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    if (deltaSec < 60)
+        return "now";
+    if (deltaSec < 60 * 60)
+        return `${Math.floor(deltaSec / 60)}m`;
+    if (deltaSec < 24 * 60 * 60)
+        return `${Math.floor(deltaSec / 60 / 24)}h`;
+    if (now.getFullYear() != date.getFullYear())
+        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    return `${months[date.getMonth()]} ${date.getDate()}`;
+};
 let Tweet = (props) => {
     let t = props.t;
     let id_str = props.t.id_str;
@@ -146,7 +161,7 @@ let Tweet = (props) => {
                     "@",
                     props.u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, "34m"),
+                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(props.t.created_at)),
                 h("span", { class: "t20230403-user-line-menu" })),
             h("div", { class: "t20230403-contents" }, props.t.full_text),
             embeds && h("div", { class: "t20230624-embeds" }, embeds),
@@ -162,7 +177,7 @@ let QuotedTweet = (props) => {
                     "@",
                     props.u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, "34m"))),
+                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, dateFormat(props.t.created_at)))),
         h("div", { class: "t20230630-qrt-bottom t20230403-contents" }, props.t.full_text));
 };
 let ProfileItem = (props) => {

@@ -269,12 +269,11 @@ class App extends Component {
             (this.props.tweets || []).map(tweet => h(Tweet, { t: tweet, u: tweet.user })));
     }
 }
-let initial_state = "";
 let div = null;
 let logic = new Logic((props) => render(h(App, props), div));
-window.addEventListener("popstate", (event) => logic.navigateReal(event.state || initial_state));
+window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1)));
 window.addEventListener("load", () => {
     div = document.getElementById("timeline0");
     render(h(App, { tweets: [], tab: 0 }), div);
-    logic.navigate(initial_state);
+    logic.navigateReal(window.location.pathname.slice(1));
 });

@@ -152,7 +152,15 @@ def client_js(name):
 	return static_file(name+'.js', root='static')
 
 @route('/')
-def index():
+@route('/everyone')
+@route('/thread/<twid:int>')
+@route('/profile/<who>')
+@route('/profile/<who>/with_replies')
+@route('/profile/<who>/media')
+@route('/profile/<who>/likes')
+@route('/profile/<who>/bookmarks')
+@route('/followers/<uid:int>')
+def index(**args):
 	return static_file('index.html', root='static')
 
 run()

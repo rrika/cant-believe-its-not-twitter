@@ -21,7 +21,7 @@ type TweetInfo = {
 	retweet_count: string,
 	reply_count: string,
 	id_str: string,
-	entities: {
+	entities?: {
 		hashtags: any[],
 		symbols: any[],
 		user_mentions: any[],
@@ -199,16 +199,18 @@ let Tweet = (props: TweetProps) => {
 	};
 	let selectUser = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
 		e.preventDefault();
+		e.stopPropagation();
 		logic.navigate("profile/"+user_id_str);
 	};
 	let dumpTweet = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
 		e.preventDefault();
 		console.log(t);
 	};
-	let userPath = "/"+props.u.screen_name;
+	// let userPath = "/"+props.u.screen_name;
+	let userPath = "/profile/"+user_id_str;
 
 	let embeds = [];
-	if (props.t.entities.media !== undefined) {
+	if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
 		let items = props.t.entities.media.map((media) => <TweetImage src={media.media_url_https}/>);
 		embeds.push(<MediaGrid items={items}/>);
 	}
@@ -304,7 +306,7 @@ let Profile2 = (p: LegacyProfile) =>
 				<div class="t20230627-profile-picture">
 						<div class="t20230627-profile-picture-square-aspect"></div>
 						<div class="t20230627-profile-picture-outer-rim"></div>
-						<img alt="Opens profile photo" draggable={true} src={p.profile_image_url_https && p.profile_image_url_https.replace("normal", "200x200")}/>
+						<img alt="Opens profile photo" draggable={true} src={p.profile_image_url_https ? p.profile_image_url_https.replace("normal", "200x200") : ""}/>
 				</div>
 			</div>
 			<div class="t20230627-profile-title">

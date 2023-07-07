@@ -134,15 +134,17 @@ let Tweet = (props) => {
     };
     let selectUser = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         logic.navigate("profile/" + user_id_str);
     };
     let dumpTweet = (e) => {
         e.preventDefault();
         console.log(t);
     };
-    let userPath = "/" + props.u.screen_name;
+    // let userPath = "/"+props.u.screen_name;
+    let userPath = "/profile/" + user_id_str;
     let embeds = [];
-    if (props.t.entities.media !== undefined) {
+    if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
         let items = props.t.entities.media.map((media) => h(TweetImage, { src: media.media_url_https }));
         embeds.push(h(MediaGrid, { items: items }));
     }
@@ -217,7 +219,7 @@ let Profile2 = (p) => h("div", { class: "t20230627-profile" },
             h("div", { class: "t20230627-profile-picture" },
                 h("div", { class: "t20230627-profile-picture-square-aspect" }),
                 h("div", { class: "t20230627-profile-picture-outer-rim" }),
-                h("img", { alt: "Opens profile photo", draggable: true, src: p.profile_image_url_https && p.profile_image_url_https.replace("normal", "200x200") }))),
+                h("img", { alt: "Opens profile photo", draggable: true, src: p.profile_image_url_https ? p.profile_image_url_https.replace("normal", "200x200") : "" }))),
         h("div", { class: "t20230627-profile-title" },
             h("div", { class: "t20230627-profile-li-header" },
                 h("a", { href: "#", class: "t20230627-profile-li-header-1" },

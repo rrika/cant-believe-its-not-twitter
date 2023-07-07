@@ -34,6 +34,8 @@ type TweetInfo = {
 
 	line?: boolean,
 	quoted_status?: TweetInfo
+	context_icon?: string,
+	context_user?: string
 };
 
 type AppProps = {
@@ -218,25 +220,39 @@ let Tweet = (props: TweetProps) => {
 		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user}/>);
 
 	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0} onClick={selectTweet}>
-		<div class="t20230403-avatar-column">
-			<a href={userPath} onClick={selectUser}>
-				<div class="t20230403-avatar-box">
-					<img alt="" draggable={true} src={props.u.profile_image_url_https} class="t20230403-avatar"/>
-				</div>
-			</a>
-			{t.line ? <div class="t20230624-thread-line-below"></div> : []}
-		</div>
-		<div class="t20230403-main-column">
-			<div class="t20230403-user-line">
-				<a class="t20230403-user-line-displayname" href={userPath} onClick={selectUser}>{props.u.name}</a>
-				<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
-				<span class="t20230403-user-line-punctuation">·</span>
-				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{dateFormat(props.t.created_at)}</a>
-				<span class="t20230403-user-line-menu"></span>
+		{t.context_icon ?
+		<div class="t20230403-tweet-split t20230705-tweet-context">
+			<div class="t20230403-avatar-column">
+				{ t.context_icon == "retweet"
+				? <svg class="t20230706-context-icon" viewBox="0 0 24 24" aria-hidden="true"><g><path d="M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z"></path></g></svg>
+				: <span>{t.context_icon}</span>}
 			</div>
-			<div class="t20230403-contents">{props.t.full_text}</div>
-			{embeds && <div class="t20230624-embeds">{embeds}</div>}
-			<TweetActions t={props.t}/>
+			<div class="t20230403-main-column">
+				{t.context_user} Retweeted
+			</div>
+		</div>
+		: []}
+		<div class="t20230403-tweet-split">
+			<div class="t20230403-avatar-column">
+				<a href={userPath} onClick={selectUser}>
+					<div class="t20230403-avatar-box">
+						<img alt="" draggable={true} src={props.u.profile_image_url_https} class="t20230403-avatar"/>
+					</div>
+				</a>
+				{t.line ? <div class="t20230624-thread-line-below"></div> : []}
+			</div>
+			<div class="t20230403-main-column">
+				<div class="t20230403-user-line">
+					<a class="t20230403-user-line-displayname" href={userPath} onClick={selectUser}>{props.u.name}</a>
+					<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
+					<span class="t20230403-user-line-punctuation">·</span>
+					<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{dateFormat(props.t.created_at)}</a>
+					<span class="t20230403-user-line-menu"></span>
+				</div>
+				<div class="t20230403-contents">{props.t.full_text}</div>
+				{embeds && <div class="t20230624-embeds">{embeds}</div>}
+				<TweetActions t={props.t}/>
+			</div>
 		</div>
 	</div>;
 };

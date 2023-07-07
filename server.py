@@ -42,7 +42,17 @@ class ClientAPI:
 
 	def get_original(self, tweet):
 		twid = tweet["original_id"]
-		return self.db.tweets.get(twid, tweet)
+		new_tweet = self.db.tweets.get(twid, tweet)
+		if new_tweet == tweet:
+			return tweet
+		new_tweet = new_tweet.copy()
+		new_tweet["context_icon"] = "retweet"
+		try:
+			new_tweet["context_user"] = self.db.profiles.get(int(tweet["user_id_str"]), {"name": "ERROR"})["name"]
+		except:
+			pprint(tweet)
+			raise
+		return new_tweet
 
 	def get_tweet(self, twid):
 		tweet = self.db.tweets.get(twid, None)

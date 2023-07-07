@@ -151,23 +151,35 @@ let Tweet = (props) => {
     if (t.quoted_status)
         embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user }));
     return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0, onClick: selectTweet },
-        h("div", { class: "t20230403-avatar-column" },
-            h("a", { href: userPath, onClick: selectUser },
-                h("div", { class: "t20230403-avatar-box" },
-                    h("img", { alt: "", draggable: true, src: props.u.profile_image_url_https, class: "t20230403-avatar" }))),
-            t.line ? h("div", { class: "t20230624-thread-line-below" }) : []),
-        h("div", { class: "t20230403-main-column" },
-            h("div", { class: "t20230403-user-line" },
-                h("a", { class: "t20230403-user-line-displayname", href: userPath, onClick: selectUser }, props.u.name),
-                h("a", { class: "t20230403-user-line-handle", href: userPath, onClick: selectUser, tabIndex: -1 },
-                    "@",
-                    props.u.screen_name),
-                h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(props.t.created_at)),
-                h("span", { class: "t20230403-user-line-menu" })),
-            h("div", { class: "t20230403-contents" }, props.t.full_text),
-            embeds && h("div", { class: "t20230624-embeds" }, embeds),
-            h(TweetActions, { t: props.t })));
+        t.context_icon ?
+            h("div", { class: "t20230403-tweet-split t20230705-tweet-context" },
+                h("div", { class: "t20230403-avatar-column" }, t.context_icon == "retweet"
+                    ? h("svg", { class: "t20230706-context-icon", viewBox: "0 0 24 24", "aria-hidden": "true" },
+                        h("g", null,
+                            h("path", { d: "M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z" })))
+                    : h("span", null, t.context_icon)),
+                h("div", { class: "t20230403-main-column" },
+                    t.context_user,
+                    " Retweeted"))
+            : [],
+        h("div", { class: "t20230403-tweet-split" },
+            h("div", { class: "t20230403-avatar-column" },
+                h("a", { href: userPath, onClick: selectUser },
+                    h("div", { class: "t20230403-avatar-box" },
+                        h("img", { alt: "", draggable: true, src: props.u.profile_image_url_https, class: "t20230403-avatar" }))),
+                t.line ? h("div", { class: "t20230624-thread-line-below" }) : []),
+            h("div", { class: "t20230403-main-column" },
+                h("div", { class: "t20230403-user-line" },
+                    h("a", { class: "t20230403-user-line-displayname", href: userPath, onClick: selectUser }, props.u.name),
+                    h("a", { class: "t20230403-user-line-handle", href: userPath, onClick: selectUser, tabIndex: -1 },
+                        "@",
+                        props.u.screen_name),
+                    h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
+                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(props.t.created_at)),
+                    h("span", { class: "t20230403-user-line-menu" })),
+                h("div", { class: "t20230403-contents" }, props.t.full_text),
+                embeds && h("div", { class: "t20230624-embeds" }, embeds),
+                h(TweetActions, { t: props.t }))));
 };
 let QuotedTweet = (props) => {
     let userPath = "/" + props.u.screen_name;

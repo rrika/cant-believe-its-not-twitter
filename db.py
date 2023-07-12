@@ -97,12 +97,17 @@ class DB:
 	def __init__(self):
 		self.tweets = {}
 		self.profiles = {}
+		self.followers = {} # could be part of .profiles
+		self.followings = {} # could be part of .profiles
 		self.by_user = {}
 		self.media = MediaStore()
 		self.likes_map = {}
 		self.likes_sorted = {}
 		self.bookmarks_map = {}
 		self.bookmarks_sorted = {}
+
+		# context
+		self.uid = None
 
 	def sort_profiles(self):
 		# tweets in reverse chronological order
@@ -121,6 +126,15 @@ class DB:
 			l = sorted(bookmarks.items(), key=lambda a: -a[1])
 			l = [twid for twid, sort_index in l]
 			self.bookmarks_sorted[uid] = l
+
+		# replies hint at followings
+		for twid, tweet in self.tweets.items():
+			if "in_reply_to_user_id_str" in tweet:
+				a = int(tweet["user_id_str"])
+				b = int(tweet["in_reply_to_user_id_str"])
+				if b in self.profiles and self.profiles[b].get("protected", False):
+					if a != b:
+						self.add_follow(a, b)
 
 	# queries
 
@@ -160,6 +174,9 @@ class DB:
 		dbuser = self.profiles.setdefault(uid, {})
 		dbuser.update(user)
 
+		if self.uid is not None and user.get("followed_by", False):
+			self.add_follow(uid, self.uid)
+
 	def add_user(self, user, give_timeline_v1=False, give_timeline_v2=False):
 		if "legacy" in user:
 			self.add_legacy_user(user["legacy"], user["rest_id"])
@@ -196,6 +213,11 @@ class DB:
 		self.add_user(user)
 		self.add_legacy_tweet(legacy)
 		return legacy["original_id"]
+
+	def add_follow(self, follower, following):
+		assert follower != following
+		self.followers.setdefault(following, set()).add(follower)
+		self.followings.setdefault(follower, set()).add(following)
 
 	def add_item_content(self, content, name, cursors=None):
 		ct = content["__typename"]
@@ -303,8 +325,18 @@ class DB:
 			return json.loads(q["variables"][0])
 
 	def load_gql(self, path, data, context):
+		if context and context.get("cookies", None):
+			cookies = {entry["name"]: entry["value"] for entry in context["cookies"]}
+		else:
+			cookies = {}
+		uid = cookies.get("twid", None)
+		if uid:
+			uid = int(uid[2:])
+		self.uid = uid
+
 		if "data" not in data:
 			return
+
 		data = data["data"]
 		if path.endswith("/GetUserClaims"):
 			pass
@@ -368,11 +400,27 @@ class DB:
 				user_bookmarks[twid] = max(sort_index, user_bookmarks.get(twid, sort_index))
 
 		elif path.endswith("/Following"):
+			gql_vars = self.get_gql_vars(context) or {}
+			whose_followings = int(gql_vars["userId"])
 			followings_timeline = self.add_user(data["user"]["result"], give_timeline_v1=True)
-			self.add_with_instructions(followings_timeline["timeline"])
+			layout, cursors = self.add_with_instructions(followings_timeline["timeline"])
+			for entry in layout:
+				if entry is None:
+					continue
+				sort_index, name, following_uid = entry
+				self.add_follow(whose_followings, following_uid)
+
 		elif path.endswith("/Followers"):
+			gql_vars = self.get_gql_vars(context) or {}
+			whose_followers = int(gql_vars["userId"])
 			followers_timeline = self.add_user(data["user"]["result"], give_timeline_v1=True)
-			self.add_with_instructions(followers_timeline["timeline"])
+			layout, cursors = self.add_with_instructions(followers_timeline["timeline"])
+			for entry in layout:
+				if entry is None:
+					continue
+				sort_index, name, follower_uid = entry
+				self.add_follow(follower_uid, whose_followers)
+
 		elif path.endswith("/UsersVerifiedAvatars"):
 			for result in data["usersResults"]:
 				self.add_user(result["result"])
@@ -452,7 +500,10 @@ class DB:
 			url = entry["request"]["url"]
 			response = entry["response"]["content"]
 			if response:
-				context = {"url": url}
+				context = {
+					"url": url,
+					"cookies": entry["request"]["cookies"]
+				}
 				if "text" not in response:
 					print("missing ", url)
 					if "comment" in response:

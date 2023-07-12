@@ -87,10 +87,10 @@ class ClientAPI:
 		return p
 
 	def followers(self, uid):
-		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
+		return [self.get_profile(uid) for uid in self.db.followers.get(uid, [])]
 
 	def following(self, uid):
-		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
+		return [self.get_profile(uid) for uid in self.db.followings.get(uid, [])]
 
 	def everyone(self):
 		return [self.get_profile(uid) for uid in self.db.profiles.keys()]

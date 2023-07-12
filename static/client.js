@@ -1,4 +1,4 @@
-import { h, render, Component, Fragment } from 'preact';
+import { h, render, Component } from 'preact';
 class Logic {
     constructor(updateFn) {
         this.updateFn = updateFn;
@@ -20,9 +20,6 @@ class Logic {
         else if ((m = i.match(/thread\/(\d+)$/)) !== null) {
             api_call = i; // easy
         }
-        else if ((m = i.match(/followers\/(\d+)$/)) !== null) {
-            api_call = i; // easy
-        }
         else if ((m = i.match(/profile\/(\d+)$/)) !== null) {
             api_call = `profile/${m[1]}`;
             tab = 0;
@@ -42,6 +39,14 @@ class Logic {
         else if ((m = i.match(/profile\/(\d+)\/bookmarks$/)) !== null) {
             api_call = `bookmarks/${m[1]}`;
             tab = 4;
+        }
+        else if ((m = i.match(/profile\/(\d+)\/following$/)) !== null) {
+            api_call = `following/${m[1]}`;
+            tab = 101;
+        }
+        else if ((m = i.match(/profile\/(\d+)\/followers$/)) !== null) {
+            api_call = `followers/${m[1]}`;
+            tab = 100;
         }
         else {
             api_call = i; // fall-back
@@ -223,6 +228,7 @@ let ProfileItem = (props) => {
                     p.followed_by ? h("span", { class: "t20230627-profile-badge" }, "Follows you") : [])),
             h("div", { class: "t20230627-profile-li-bio t20230403-contents" }, p.description)));
 };
+let pluralize = (n, counter) => n == 1 ? counter : counter + "s";
 let Profile2 = (p) => h("div", { class: "t20230627-profile" },
     h("a", { class: "t20230627-profile-banner" },
         h("img", { src: p.profile_banner_url, draggable: true })),
@@ -248,7 +254,16 @@ let Profile2 = (p) => h("div", { class: "t20230627-profile" },
                     p.followed_by ? h("span", { class: "t20230627-profile-badge" }, "Follows you") : []))),
         h("div", { class: "t20230627-profile-description" }, p.description),
         h("div", { class: "t20230627-profile-attributes" }),
-        h("div", { class: "t20230627-profile-numbers" }),
+        h("div", { class: "t20230627-profile-numbers" }, [
+            h("a", { href: `/profile/${p.user_id_str}/following` },
+                h("span", null, p.friends_count),
+                " ",
+                h("span", null, "Following")),
+            h("a", { href: `/profile/${p.user_id_str}/followers` },
+                h("span", null, p.followers_count),
+                " ",
+                h("span", null, pluralize(p.followers_count, "Follower")))
+        ]),
         h("div", { class: "t20230627-profile-context" })));
 let Profile = (props) => Profile2(props.p);
 let Header = (props) => h("div", { class: "t20230628-timeline-header" },
@@ -263,24 +278,41 @@ let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map(
 class App extends Component {
     render() {
         let top = this.props.topProfile;
-        let selectTab = (index) => {
-            let uid = this.props.topProfile.user_id_str;
-            let url = [
-                `profile/${uid}`,
-                `profile/${uid}/with_replies`,
-                `profile/${uid}/media`,
-                `profile/${uid}/likes`,
-                `profile/${uid}/bookmarks`
-            ][index];
-            logic.navigate(url);
-        };
-        return h(Fragment, null,
-            h(Header, null),
-            top ? h(Fragment, null,
-                h(Profile, { p: top }),
-                h(NavBar, { items: ["Tweets", "Replies", "Media", "Likes", "Bookmarks"], selected: this.props.tab, onClick: selectTab })) : [],
-            (this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })),
-            (this.props.tweets || []).map(tweet => h(Tweet, { t: tweet, u: tweet.user })));
+        let parts = [];
+        if (this.props.tab >= 100) {
+            let selectTab = (index) => {
+                let uid = this.props.topProfile.user_id_str;
+                let url = [
+                    `profile/${uid}/followers`,
+                    `profile/${uid}/following`
+                ][index];
+                logic.navigate(url);
+            };
+            parts.push(h(Header, null));
+            parts.push(h(NavBar, { items: ["Followers", "Following"], selected: this.props.tab - 100, onClick: selectTab }));
+        }
+        else if (top) {
+            let selectTab = (index) => {
+                let uid = this.props.topProfile.user_id_str;
+                let url = [
+                    `profile/${uid}`,
+                    `profile/${uid}/with_replies`,
+                    `profile/${uid}/media`,
+                    `profile/${uid}/likes`,
+                    `profile/${uid}/bookmarks`
+                ][index];
+                logic.navigate(url);
+            };
+            parts.push(h(Header, null));
+            parts.push(h(Profile, { p: top }));
+            parts.push(h(NavBar, { items: ["Tweets", "Replies", "Media", "Likes", "Bookmarks"], selected: this.props.tab, onClick: selectTab }));
+        }
+        else {
+            parts.push(h(Header, null));
+        }
+        parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })));
+        parts.push(...(this.props.tweets || []).map(tweet => h(Tweet, { t: tweet, u: tweet.user })));
+        return parts;
     }
 }
 let div = null;

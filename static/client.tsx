@@ -8,7 +8,9 @@ type LegacyProfile = {
 	profile_image_url_https: string,
 	followed_by?: boolean,
 	protected: boolean,
-	user_id_str?: string
+	user_id_str?: string,
+	friends_count: number, // following
+	followers_count: number // followers
 };
 
 type MediaEntity = {
@@ -73,9 +75,6 @@ class Logic {
 		else if ((m = i.match(/thread\/(\d+)$/)) !== null) {
 			api_call = i; // easy
 		}
-		else if ((m = i.match(/followers\/(\d+)$/)) !== null) {
-			api_call = i; // easy
-		}
 		else if ((m = i.match(/profile\/(\d+)$/)) !== null) {
 			api_call = `profile/${m[1]}`;
 			tab = 0;
@@ -95,6 +94,14 @@ class Logic {
 		else if ((m = i.match(/profile\/(\d+)\/bookmarks$/)) !== null) {
 			api_call = `bookmarks/${m[1]}`;
 			tab = 4;
+		}
+		else if ((m = i.match(/profile\/(\d+)\/following$/)) !== null) {
+			api_call = `following/${m[1]}`;
+			tab = 101;
+		}
+		else if ((m = i.match(/profile\/(\d+)\/followers$/)) !== null) {
+			api_call = `followers/${m[1]}`;
+			tab = 100;
 		}
 		else {
 			api_call = i; // fall-back
@@ -312,6 +319,8 @@ let ProfileItem = (props: ProfileProps) => {
 	</div>;
 };
 
+let pluralize = (n: number, counter: string) => n == 1 ? counter : counter + "s";
+
 let Profile2 = (p: LegacyProfile) =>
 	<div class="t20230627-profile">
 		<a class="t20230627-profile-banner">
@@ -346,8 +355,10 @@ let Profile2 = (p: LegacyProfile) =>
 			</div>
 			<div class="t20230627-profile-attributes">
 			</div>
-			<div class="t20230627-profile-numbers">
-			</div>
+			<div class="t20230627-profile-numbers">{[
+				<a href={`/profile/${p.user_id_str}/following`}><span>{p.friends_count}</span> <span>Following</span></a>,
+				<a href={`/profile/${p.user_id_str}/followers`}><span>{p.followers_count}</span> <span>{pluralize(p.followers_count, "Follower")}</span></a>
+			]}</div>
 			<div class="t20230627-profile-context">
 			</div>
 		</div>
@@ -384,26 +395,39 @@ let NavBar = (props: NavBarProps) =>
 class App extends Component<AppProps> {
 	render() {
 		let top = this.props.topProfile;
-		let selectTab = (index: number) => {
-			let uid = this.props.topProfile.user_id_str;
-			let url: string = [
-				`profile/${uid}`,
-				`profile/${uid}/with_replies`,
-				`profile/${uid}/media`,
-				`profile/${uid}/likes`,
-				`profile/${uid}/bookmarks`
-			][index];
-			logic.navigate(url)
-		};
-		return <>
-			<Header/>
-			{top ? <>
-				<Profile p={top}/>
-				<NavBar items={["Tweets", "Replies", "Media", "Likes", "Bookmarks"]} selected={this.props.tab} onClick={selectTab}/>
-			</> : [] }
-			{(this.props.profiles || []).map(profile => <ProfileItem p={profile}/>)}
-			{(this.props.tweets || []).map(tweet => <Tweet t={tweet} u={tweet.user}/>)}
-		</>;
+		let parts = [];
+		if (this.props.tab >= 100) {
+			let selectTab = (index: number) => {
+				let uid = this.props.topProfile.user_id_str;
+				let url: string = [
+					`profile/${uid}/followers`,
+					`profile/${uid}/following`
+				][index];
+				logic.navigate(url)
+			};
+			parts.push(<Header/>);
+			parts.push(<NavBar items={["Followers", "Following"]} selected={this.props.tab-100} onClick={selectTab}/>);
+		} else if (top) {
+			let selectTab = (index: number) => {
+				let uid = this.props.topProfile.user_id_str;
+				let url: string = [
+					`profile/${uid}`,
+					`profile/${uid}/with_replies`,
+					`profile/${uid}/media`,
+					`profile/${uid}/likes`,
+					`profile/${uid}/bookmarks`
+				][index];
+				logic.navigate(url)
+			};
+			parts.push(<Header/>);
+			parts.push(<Profile p={top}/>);
+			parts.push(<NavBar items={["Tweets", "Replies", "Media", "Likes", "Bookmarks"]} selected={this.props.tab} onClick={selectTab}/>);
+		} else {
+			parts.push(<Header/>);
+		}
+		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem p={profile}/>));
+		parts.push(...(this.props.tweets || []).map(tweet => <Tweet t={tweet} u={tweet.user}/>));
+		return parts;
 	}
 }
 

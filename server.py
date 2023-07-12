@@ -86,6 +86,12 @@ class ClientAPI:
 		p = urlmap_profile(self.urlmap, p)
 		return p
 
+	def followers(self, uid):
+		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
+
+	def following(self, uid):
+		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
+
 	def everyone(self):
 		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
 
@@ -124,6 +130,20 @@ def profile(uid):
 	return {
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.bookmarks_view(uid) #[:200]
+	}
+
+@route('/api/followers/<uid:int>')
+def thread(uid):
+	return {
+		"topProfile": ca.get_profile(uid),
+		"profiles": ca.followers(uid)[:300]
+	}
+
+@route('/api/following/<uid:int>')
+def thread(uid):
+	return {
+		"topProfile": ca.get_profile(uid),
+		"profiles": ca.following(uid)[:300]
 	}
 
 @route('/api/everyone')
@@ -169,7 +189,8 @@ def client_js(name):
 @route('/profile/<who>/media')
 @route('/profile/<who>/likes')
 @route('/profile/<who>/bookmarks')
-@route('/followers/<uid:int>')
+@route('/profile/<who>/followers')
+@route('/profile/<who>/following')
 def index(**args):
 	return static_file('index.html', root='static')
 

@@ -155,7 +155,6 @@ class DB:
 		return self.likes_sorted.get(uid, [])
 
 	def get_user_bookmarks(self, uid):
-		uid = None
 		return self.bookmarks_sorted.get(uid, [])
 
 	# loading
@@ -389,7 +388,7 @@ class DB:
 
 		elif path.endswith("/Bookmarks"):
 			layout, cursors = self.add_with_instructions(data["bookmark_timeline_v2"]["timeline"])
-			user_bookmarks = self.bookmarks_map.setdefault(None, {})
+			user_bookmarks = self.bookmarks_map.setdefault(uid, {})
 			for entry in layout:
 				if entry is None:
 					continue # non-tweet timeline item

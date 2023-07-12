@@ -93,7 +93,9 @@ class ClientAPI:
 		return [self.get_profile(uid) for uid in self.db.followings.get(uid, [])]
 
 	def everyone(self):
-		return [self.get_profile(uid) for uid in self.db.profiles.keys()]
+		uids = [(-len(self.db.by_user.get(uid, [])), uid) for uid in self.db.profiles.keys()]
+		uids.sort()
+		return [self.get_profile(uid) for neg_num_tweets, uid in uids if -neg_num_tweets >= 2]
 
 ca = ClientAPI(db)
 

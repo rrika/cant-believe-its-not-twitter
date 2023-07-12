@@ -188,13 +188,24 @@
 			display: flex; /* for the thread line */
 			flex-direction: column;
 		}
+		.t20230705-reduced-avatar-size .t20230403-avatar-column {
+			width: 40px
+		}
 		.t20230403-avatar-box {
 			width: 48px;
 			height: 48px;
 			border-radius: 9999px;
 			overflow: hidden;
 		}
+		.t20230705-reduced-avatar-size .t20230403-avatar-box {
+			width: 40px;
+			height: 40px;
+		}
 		.t20230403-avatar {
+		}
+		.t20230705-reduced-avatar-size .t20230403-avatar {
+			width: 40px;
+			height: 40px;
 		}
 		.t20230624-thread-line-below {
 			margin-top: 4px;
@@ -323,6 +334,9 @@
 		}
 		.t20230403-contents {
 			line-height: 20px;
+		}
+		.t20230403-tweet .t20230403-contents {
+			white-space: pre-wrap;
 		}
 		.theme-light .t20230403-contents {
 			color: rgb(15, 20, 25)
@@ -533,8 +547,13 @@
 		.t20230627-profile {
 
 		}
+		.t20230627-profile-banner:before {
+			padding-bottom: 33.3333%;
+			content: "";
+		}
 		.t20230627-profile-banner {
 			display: flex;
+			background-color: rgb(66, 83, 100);
 			/* twitter doesn't do this and has ugly scaled banners for it
 			margin-left: -1px;
 			margin-right: -1px; */
@@ -607,6 +626,16 @@
 		}
 		.theme-dim .t20230627-profile-description, .theme-dim .t20230627-profile-attributes {
 			color: rgb(247, 249, 249);
+		}
+		.t20230627-profile-description a {
+			color: rgb(29, 155, 240);
+			text-decoration: none;
+		}
+		.t20230627-profile-description a:hover {
+			text-decoration: underline;
+		}
+		.t20230627-profile-description a:visited {
+			color: rgb(29, 155, 240);
 		}
 		.t20230627-profile-numbers {
 

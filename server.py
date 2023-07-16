@@ -1,6 +1,7 @@
 from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
 
-from bottle import route, run, static_file, HTTPError, HTTPResponse
+import time
+from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
 
 use_twitter_cdn_for_images = False
 
@@ -168,16 +169,42 @@ def preact_js(path):
 		r = static_file('preact.mjs', root='static')
 	return r
 
+startup_time = time.time()
+
+def static_blob(data, mime, mtime = None):
+	mtime = mtime or startup_time
+
+	headers = {}
+	headers['Content-Type'] = mime
+	lm = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime))
+	headers['Last-Modified'] = lm
+
+	ims = request.environ.get('HTTP_IF_MODIFIED_SINCE')
+	if ims:
+		ims = parse_date(ims.split(";")[0].strip())
+	if ims is not None and ims >= int(mtime):
+		headers['Date'] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+		return HTTPResponse(status=304, **headers)
+
+	body = '' if request.method == 'HEAD' else data
+	return HTTPResponse(body, status=200, **headers)
+
 @route('/media/<path:path>')
 def media(path):
-	item = db.media.lookup("https://"+path)
+	item, cacheable = db.media.lookup("https://"+path), True
+	if not cacheable and "HTTP_IF_MODIFIED_SINCE" in request.environ:
+		del request.environ["HTTP_IF_MODIFIED_SINCE"]
 	if isinstance(item, OnDisk):
-		return static_file(os.path.basename(item.path), root=os.path.dirname(item.path))
+		response = static_file(os.path.basename(item.path), root=os.path.dirname(item.path))
 	elif isinstance(item, InMemory):
 		# todo: caching headers, range queries?
-		return HTTPResponse(item.data, status=200, **{"Content-Type": item.mime})
+		response = static_blob(item.data, item.mime)
 	else:
 		return HTTPError(404)
+
+	if cacheable:
+		response.expires = startup_time + 60 * 60 * 24 # one day?
+	return response
 
 @route('/<name>.js')
 def client_js(name):

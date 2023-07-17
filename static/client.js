@@ -303,9 +303,12 @@ class App extends Component {
                 ][index];
                 logic.navigate(url);
             };
+            let tabs = ["Tweets", "Replies", "Media", "Likes"];
+            if (top.observer)
+                tabs.push("Bookmarks");
             parts.push(h(Header, null));
             parts.push(h(Profile, { p: top }));
-            parts.push(h(NavBar, { items: ["Tweets", "Replies", "Media", "Likes", "Bookmarks"], selected: this.props.tab, onClick: selectTab }));
+            parts.push(h(NavBar, { items: tabs, selected: this.props.tab, onClick: selectTab }));
         }
         else {
             parts.push(h(Header, null));

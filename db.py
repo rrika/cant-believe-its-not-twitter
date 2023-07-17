@@ -105,6 +105,7 @@ class DB:
 		self.likes_sorted = {}
 		self.bookmarks_map = {}
 		self.bookmarks_sorted = {}
+		self.observers = set()
 
 		# context
 		self.uid = None
@@ -332,6 +333,7 @@ class DB:
 		if uid:
 			uid = int(uid[2:])
 		self.uid = uid
+		if uid: self.observers.add(uid)
 
 		if "data" not in data:
 			return

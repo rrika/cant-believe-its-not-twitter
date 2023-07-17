@@ -84,6 +84,7 @@ class ClientAPI:
 			return None
 		p = self.db.profiles[uid].copy()
 		p["user_id_str"] = str(uid)
+		p["observer"] = uid in self.db.observers
 		p = urlmap_profile(self.urlmap, p)
 		return p
 

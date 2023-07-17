@@ -10,7 +10,9 @@ type LegacyProfile = {
 	protected: boolean,
 	user_id_str?: string,
 	friends_count: number, // following
-	followers_count: number // followers
+	followers_count: number, // followers
+
+	observer?: boolean
 };
 
 type MediaEntity = {
@@ -419,9 +421,12 @@ class App extends Component<AppProps> {
 				][index];
 				logic.navigate(url)
 			};
+			let tabs = ["Tweets", "Replies", "Media", "Likes"];
+			if (top.observer)
+				tabs.push("Bookmarks");
 			parts.push(<Header/>);
 			parts.push(<Profile p={top}/>);
-			parts.push(<NavBar items={["Tweets", "Replies", "Media", "Likes", "Bookmarks"]} selected={this.props.tab} onClick={selectTab}/>);
+			parts.push(<NavBar items={tabs} selected={this.props.tab} onClick={selectTab}/>);
 		} else {
 			parts.push(<Header/>);
 		}

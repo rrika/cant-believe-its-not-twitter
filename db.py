@@ -148,9 +148,17 @@ class DB:
 		return self.by_user.get(uid, [])
 
 	def get_user_media(self, uid):
-		return [twid for twid in self.by_user.get(uid, []) if
-			len(self.tweets.get(twid, {}).get("entities", {}).get("media", [])) > 0
-		]
+		media_tweets = []
+		for twid in self.by_user.get(uid, []):
+			tweet = self.tweets.get(twid, {})
+			if len(tweet.get("entities", {}).get("media", [])) == 0:
+				continue
+			otwid = tweet["original_id"]
+			tweet = self.tweets.get(otwid, tweet)
+			if int(tweet["user_id_str"]) != uid:
+				continue
+			media_tweets.append(twid)
+		return media_tweets
 
 	def get_user_likes(self, uid):
 		return self.likes_sorted.get(uid, [])

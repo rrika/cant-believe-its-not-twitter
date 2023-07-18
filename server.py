@@ -77,6 +77,9 @@ class ClientAPI:
 	def bookmarks_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_bookmarks(uid)]
 
+	def interactions_view(self, uid):
+		return [self.get_tweet(twid) for twid in self.db.get_user_interactions(uid)]
+
 	# users
 
 	def get_profile(self, uid):
@@ -134,6 +137,13 @@ def profile(uid):
 	return {
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.bookmarks_view(uid) #[:200]
+	}
+
+@route('/api/interactions/<uid:int>')
+def profile(uid):
+	return {
+		"topProfile": ca.get_profile(uid),
+		"tweets": ca.interactions_view(uid)[:200]
 	}
 
 @route('/api/followers/<uid:int>')
@@ -219,6 +229,7 @@ def client_js(name):
 @route('/profile/<who>/media')
 @route('/profile/<who>/likes')
 @route('/profile/<who>/bookmarks')
+@route('/profile/<who>/interactions')
 @route('/profile/<who>/followers')
 @route('/profile/<who>/following')
 def index(**args):

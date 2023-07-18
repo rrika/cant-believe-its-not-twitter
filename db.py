@@ -105,6 +105,7 @@ class DB:
 		self.likes_sorted = {}
 		self.bookmarks_map = {}
 		self.bookmarks_sorted = {}
+		self.interactions_sorted = {}
 		self.observers = set()
 
 		# context
@@ -137,6 +138,21 @@ class DB:
 					if a != b:
 						self.add_follow(a, b)
 
+		# likes are interactions
+		for uid, likes in self.likes_map.items():
+			if uid in self.observers:
+				for twid in likes:
+					if twid in self.tweets:
+						tweet = self.tweets[twid]
+						if "user_id_str" in tweet:
+							u = int(tweet["user_id_str"])
+							self.interactions_sorted.setdefault(u, []).append(twid)
+
+		# interactions in reverse chronological order
+		for tids in self.interactions_sorted.values():
+			tids[:] = set(tids)
+			tids.sort(key=lambda twid: -twid)
+
 	# queries
 
 	def get_user_tweets(self, uid):
@@ -163,6 +179,9 @@ class DB:
 	def get_user_likes(self, uid):
 		return self.likes_sorted.get(uid, [])
 
+	def get_user_interactions(self, uid):
+		return self.interactions_sorted.get(uid, [])
+
 	def get_user_bookmarks(self, uid):
 		return self.bookmarks_sorted.get(uid, [])
 
@@ -173,6 +192,8 @@ class DB:
 		self.tweets[twid] = tweet
 		uid = int(tweet["user_id_str"])
 		self.by_user.setdefault(uid, []).append(twid)
+		if tweet["favorited"] and self.uid:
+			self.likes_map.setdefault(self.uid, {}).setdefault(twid, 0) # unknown like
 
 	def add_legacy_user(self, user, uid):
 		if user == {}: # in UsersVerifiedAvatars for example

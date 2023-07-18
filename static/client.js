@@ -40,6 +40,10 @@ class Logic {
             api_call = `bookmarks/${m[1]}`;
             tab = 4;
         }
+        else if ((m = i.match(/profile\/(\d+)\/interactions$/)) !== null) {
+            api_call = `interactions/${m[1]}`;
+            tab = 4;
+        }
         else if ((m = i.match(/profile\/(\d+)\/following$/)) !== null) {
             api_call = `following/${m[1]}`;
             tab = 101;
@@ -273,48 +277,42 @@ let Header = (props) => h("div", { class: "t20230628-timeline-header" },
                 h("svg", { viewBox: "0 0 24 24", "aria-hidden": "true", style: "color: rgb(239, 243, 244);" },
                     h("g", null,
                         h("path", { d: "M7.414 13l5.043 5.04-1.414 1.42L3.586 12l7.457-7.46 1.414 1.42L7.414 11H21v2H7.414z" })))))));
-let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map((name, index) => h("div", { class: "t20230630-navbutton" + (index == props.selected ? " navbar-selected" : ""), onClick: (e) => props.onClick(index) },
-    h("div", { class: "t20230630-navbutton-text" }, name))));
+let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map((tab, index) => h("div", { class: "t20230630-navbutton" + (index == props.selected ? " navbar-selected" : ""), onClick: (e) => logic.navigate(tab.navigate_to) },
+    h("div", { class: "t20230630-navbutton-text" }, tab.label))));
 class App extends Component {
     render() {
         let top = this.props.topProfile;
         let parts = [];
         if (this.props.tab >= 100) {
-            let selectTab = (index) => {
-                let uid = this.props.topProfile.user_id_str;
-                let url = [
-                    `profile/${uid}/followers`,
-                    `profile/${uid}/following`
-                ][index];
-                logic.navigate(url);
-            };
+            let uid = this.props.topProfile.user_id_str;
+            let tabs = [
+                { label: "Followers", navigate_to: `profile/${uid}/followers` },
+                { label: "Following", navigate_to: `profile/${uid}/following` }
+            ];
             parts.push(h(Header, null));
-            parts.push(h(NavBar, { items: ["Followers", "Following"], selected: this.props.tab - 100, onClick: selectTab }));
+            parts.push(h(NavBar, { items: tabs, selected: this.props.tab - 100 }));
         }
         else if (top) {
-            let selectTab = (index) => {
-                let uid = this.props.topProfile.user_id_str;
-                let url = [
-                    `profile/${uid}`,
-                    `profile/${uid}/with_replies`,
-                    `profile/${uid}/media`,
-                    `profile/${uid}/likes`,
-                    `profile/${uid}/bookmarks`
-                ][index];
-                logic.navigate(url);
-            };
-            let tabs = ["Tweets", "Replies", "Media", "Likes"];
+            let uid = this.props.topProfile.user_id_str;
+            let tabs = [
+                { label: "Tweets", navigate_to: `profile/${uid}` },
+                { label: "Replies", navigate_to: `profile/${uid}/with_replies` },
+                { label: "Media", navigate_to: `profile/${uid}/media` },
+                { label: "Likes", navigate_to: `profile/${uid}/likes` }
+            ];
             if (top.observer)
-                tabs.push("Bookmarks");
+                tabs.push({ label: "Bookmarks", navigate_to: `profile/${uid}/bookmarks` });
+            else
+                tabs.push({ label: "Interactions", navigate_to: `profile/${uid}/interactions` });
             parts.push(h(Header, null));
             parts.push(h(Profile, { p: top }));
-            parts.push(h(NavBar, { items: tabs, selected: this.props.tab, onClick: selectTab }));
+            parts.push(h(NavBar, { items: tabs, selected: this.props.tab }));
         }
         else {
             parts.push(h(Header, null));
         }
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })));
-        parts.push(...(this.props.tweets || []).map(tweet => h(Tweet, { t: tweet, u: tweet.user })));
+        parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { t: tweet, u: tweet.user }) : []));
         return parts;
     }
 }

@@ -97,6 +97,10 @@ class Logic {
 			api_call = `bookmarks/${m[1]}`;
 			tab = 4;
 		}
+		else if ((m = i.match(/profile\/(\d+)\/interactions$/)) !== null) {
+			api_call = `interactions/${m[1]}`;
+			tab = 4;
+		}
 		else if ((m = i.match(/profile\/(\d+)\/following$/)) !== null) {
 			api_call = `following/${m[1]}`;
 			tab = 101;
@@ -379,17 +383,23 @@ let Header = (props: {}) =>
 		</div>
 	</div>;
 
+type Tab = {
+	label: string,
+	navigate_to: string
+}
+
 type NavBarProps = {
-	items: string[],
-	selected: number,
-	onClick: (number) => void
+	items: Tab[],
+	selected: number
 }
 
 let NavBar = (props: NavBarProps) =>
 	<div class="t20230630-navbar">
-		{props.items.map((name, index) =>
-			<div class={"t20230630-navbutton" + (index == props.selected ? " navbar-selected" : "")} onClick={(e) => props.onClick(index)}>
-				<div class="t20230630-navbutton-text">{name}</div>
+		{props.items.map((tab, index) =>
+			<div class={"t20230630-navbutton" + (index == props.selected ? " navbar-selected" : "")}
+				onClick={(e) => logic.navigate(tab.navigate_to)}
+			>
+				<div class="t20230630-navbutton-text">{tab.label}</div>
 			</div>
 		)}
 	</div>;
@@ -399,39 +409,33 @@ class App extends Component<AppProps> {
 		let top = this.props.topProfile;
 		let parts = [];
 		if (this.props.tab >= 100) {
-			let selectTab = (index: number) => {
-				let uid = this.props.topProfile.user_id_str;
-				let url: string = [
-					`profile/${uid}/followers`,
-					`profile/${uid}/following`
-				][index];
-				logic.navigate(url)
-			};
+			let uid = this.props.topProfile.user_id_str;
+			let tabs: Tab[] = [
+				{label:"Followers", navigate_to: `profile/${uid}/followers`},
+				{label:"Following", navigate_to: `profile/${uid}/following`}
+			];
 			parts.push(<Header/>);
-			parts.push(<NavBar items={["Followers", "Following"]} selected={this.props.tab-100} onClick={selectTab}/>);
+			parts.push(<NavBar items={tabs} selected={this.props.tab-100}/>);
 		} else if (top) {
-			let selectTab = (index: number) => {
-				let uid = this.props.topProfile.user_id_str;
-				let url: string = [
-					`profile/${uid}`,
-					`profile/${uid}/with_replies`,
-					`profile/${uid}/media`,
-					`profile/${uid}/likes`,
-					`profile/${uid}/bookmarks`
-				][index];
-				logic.navigate(url)
-			};
-			let tabs = ["Tweets", "Replies", "Media", "Likes"];
+			let uid = this.props.topProfile.user_id_str;
+			let tabs: Tab[] = [
+				{label: "Tweets",  navigate_to: `profile/${uid}`},
+				{label: "Replies", navigate_to: `profile/${uid}/with_replies`},
+				{label: "Media",   navigate_to: `profile/${uid}/media`},
+				{label: "Likes",   navigate_to: `profile/${uid}/likes`}
+			];
 			if (top.observer)
-				tabs.push("Bookmarks");
+				tabs.push({label: "Bookmarks", navigate_to: `profile/${uid}/bookmarks`});
+			else
+				tabs.push({label: "Interactions", navigate_to: `profile/${uid}/interactions`});
 			parts.push(<Header/>);
 			parts.push(<Profile p={top}/>);
-			parts.push(<NavBar items={tabs} selected={this.props.tab} onClick={selectTab}/>);
+			parts.push(<NavBar items={tabs} selected={this.props.tab}/>);
 		} else {
 			parts.push(<Header/>);
 		}
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem p={profile}/>));
-		parts.push(...(this.props.tweets || []).map(tweet => <Tweet t={tweet} u={tweet.user}/>));
+		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet t={tweet} u={tweet.user}/> : []));
 		return parts;
 	}
 }

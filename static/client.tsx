@@ -569,6 +569,41 @@ let Header = (props: {}) =>
 		</div>
 	</div>;
 
+type HistogramProps = {
+	year?: number,
+	month?: number,
+	max_tweets: number,
+	histogram: [number, number[]][],
+	selectMonth: (a: number, b: number) => void
+}
+
+let histogramData: HistogramProps = {
+	year: 2016,
+	month: 10,
+	max_tweets: 59,
+	histogram: [
+		[2016, [1, 3, 31, 59, 26, 17, 31, 36, 37, 14, 0, 0]],
+		[2015, [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]]
+	],
+	selectMonth: console.log
+};
+
+let HistogramSidebar = () => {
+	let props = histogramData;
+	return <div class="t20160910-sidebar-nav">{props.histogram.map((row)=>
+		<div class={"t20160910-histogram" + (row[0]==props.year ? " t20160910-active" : "")}>
+			<h3>{row[0]}</h3><ol class="t20160910-months t20160910-unstyled">{row[1].map((count, month)=> count
+				? <li><a href="#" class={"t20160910-with-tweets" + (row[0]==props.year && month+1==props.month ? " t20160910-active" : "")} rel="tooltip"
+					onClick={(ev)=>props.selectMonth(row[0], month+1)}>
+						<span class="t20160910-bar" style={`height: ${100*count/props.max_tweets}%;`}></span></a></li>
+				: <li class="t20160910-without-tweets" title="" rel="tooltip"></li>
+			)}</ol>
+		</div>
+	)}
+	{props.year !== undefined ? <a href="#">Reset selection</a> : []}
+	</div>
+};
+
 type Tab = {
 	label: string,
 	navigate_to: string
@@ -627,7 +662,8 @@ class App extends Component<AppProps> {
 				{parts}
 			</div>
 		</div>;
-		return [timeline];
+		let sidebar = <HistogramSidebar/>;
+		return [timeline, sidebar];
 	}
 }
 

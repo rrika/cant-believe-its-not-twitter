@@ -715,9 +715,130 @@
 		}
 		body {
 			position: relative;
-			display: flow-root;
+			display: flex;
 			margin: 0;
+			align-items: start;
 		}
+
+
+
+		.t20160910-sidebar-nav i {
+			padding-right:4px
+		}
+		.t20160910-sidebar-nav h3 {
+			margin: 0;
+			font-weight: bold;
+			color: #333333;
+			text-rendering: optimizelegibility;
+			line-height: 27px;
+			font-size: 18px;
+		}
+		.t20160910-sidebar-nav a {
+			color: #0088cc;
+			text-decoration: none;
+		}
+		.t20160910-sidebar-nav a:hover{
+			color: #005580;
+			text-decoration: underline;
+		}
+		.t20160910-sidebar-nav a:hover, .t20160910-sidebar-nav a:active {
+			outline: 0;
+		}
+		.t20160910-sidebar-nav {
+			overflow:hidden;
+			display:block;
+			margin-top: 2em;
+			padding:15px;
+			min-width:318px;
+			-webkit-box-shadow:inset 0 -1px 0 rgba(0,0,0,0.15);
+			-moz-box-shadow:inset 0 -1px 0 rgba(0,0,0,0.15);
+			box-shadow:inset 0 -1px 0 rgba(0,0,0,0.15);
+			background:#fff;
+			border:1px #DDD solid;
+			border-radius:6px;
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+		}
+		.t20160910-sidebar-nav > * {
+			font-size: 13px;
+		}
+		.t20160910-histogram {
+			opacity:.5;
+			clear:both;
+			-webkit-transition:.3s;
+			-moz-transition:.3s;
+			-ms-transition:.3s;
+			-o-transition:.3s;
+			transition:.3s
+		}
+		.t20160910-histogram.t20160910-active,
+		.t20160910-histogram:hover {
+			opacity:1
+		}
+		.t20160910-months {
+			margin: 0 0 9px 0;
+			padding-left:0;
+			list-style: none;
+			display:inline-block;
+		}
+		.t20160910-histogram h3 {
+			display:block;
+			color:#333;
+			-webkit-transition:.3s;
+			-moz-transition:.3s;
+			-ms-transition:.3s;
+			-o-transition:.3s;
+			transition:.3s
+		}
+		.t20160910-months li {
+			display:inline-block;
+			font-size: 13px;
+		}
+		.t20160910-months .t20160910-with-tweets,
+		.t20160910-months .t20160910-without-tweets {
+			position:relative;
+			display:inline-block;
+			height:15px;
+			width:15px;
+			padding:4px;
+			margin-right:2px;
+			background-color:#fefefe;
+			background-color:rgba(0,0,0,.025)
+		}
+		.t20160910-months .t20160910-with-tweets {
+			cursor:pointer
+		}
+		.t20160910-months .t20160910-active.t20160910-with-tweets span.t20160910-bar {
+			background-color:#25b2e6;
+			border-bottom:1px solid #25b2e6
+		}
+		.t20160910-months .t20160910-with-tweets span.t20160910-bar {
+			display:block;
+			position:absolute;
+			bottom:0;
+			left:0;
+			width:100%;
+			background:#94ddf8;
+			border-bottom:1px solid #94ddf8
+		}
+		.t20160910-months span.t20160910-value {
+			display:none;
+			position:absolute;
+			bottom:0;
+			left:0;
+			padding:4px;
+			text-align:center;
+			font-weight:bold;
+			width:15px;
+			color:#aeaeae;
+			color:rgba(0,0,0,.2)
+		}
+		.t20160910-months .t20160910-with-tweets.t20160910-active,
+		.t20160910-months .t20160910-with-tweets:hover
+		/*.t20160910-months .t20160910-with-tweets:focus */
+		{
+			background-color:#DDD
+		}
+
 	</style>
 	<script type="importmap">
 		{

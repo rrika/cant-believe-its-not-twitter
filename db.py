@@ -189,11 +189,28 @@ class DB:
 
 	def add_legacy_tweet(self, tweet):
 		twid = int(tweet["id_str"])
-		self.tweets[twid] = tweet
+		bookmarked = tweet.pop("bookmarked", False)
+		favorited = tweet.pop("favorited", False)
+		retweeted = tweet.pop("retweeted", False)
+		if twid in self.tweets:
+			self.tweets[twid].update(tweet)
+			dbtweet = self.tweets[twid]
+		else:
+			dbtweet = self.tweets[twid] = tweet
+		if self.uid:
+			observer = str(self.uid)
+			if bookmarked:
+				g = dbtweet.setdefault("bookmarkers", [])
+				if observer not in g: g.append(observer)
+			if favorited:
+				g = dbtweet.setdefault("favoriters", [])
+				if observer not in g: g.append(observer)
+				self.likes_map.setdefault(self.uid, {}).setdefault(twid, 0) # unknown like
+			if retweeted:
+				g = dbtweet.setdefault("retweeters", [])
+				if observer not in g: g.append(observer)
 		uid = int(tweet["user_id_str"])
 		self.by_user.setdefault(uid, []).append(twid)
-		if tweet["favorited"] and self.uid:
-			self.likes_map.setdefault(self.uid, {}).setdefault(twid, 0) # unknown like
 
 	def add_legacy_user(self, user, uid):
 		if user == {}: # in UsersVerifiedAvatars for example

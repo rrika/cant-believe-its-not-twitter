@@ -68,7 +68,11 @@ type AppProps = {
 	topProfile?: LegacyProfile,
 	profiles?: LegacyProfile[],
 	tweets?: TweetInfo[],
-	tab: number
+	tab: number,
+	histogram?: {
+		max_tweets: number,
+		histogram: [number, number[]][]
+	}
 };
 
 class Logic {
@@ -264,6 +268,8 @@ let partsForTweetEntities = (tweet: TweetInfo) => {
 	let parts = [];
 	let text = tweet.full_text;
 	let entities = tweet.entities;
+	if (entities === undefined)
+		return [];
 	parts.push(...prepareEntities(entities.media, "media", text));
 	parts.push(...prepareEntities(entities.urls, "url", text));
 	parts.push(...prepareEntities(entities.hashtags, "hashtag", text));
@@ -570,38 +576,29 @@ let Header = (props: {}) =>
 	</div>;
 
 type HistogramProps = {
-	year?: number,
-	month?: number,
+	year?: number | undefined,
+	month?: number | undefined,
 	max_tweets: number,
 	histogram: [number, number[]][],
 	selectMonth: (a: number, b: number) => void
 }
 
-let histogramData: HistogramProps = {
-	year: 2016,
-	month: 10,
-	max_tweets: 59,
-	histogram: [
-		[2016, [1, 3, 31, 59, 26, 17, 31, 36, 37, 14, 0, 0]],
-		[2015, [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]]
-	],
-	selectMonth: console.log
-};
+let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-let HistogramSidebar = () => {
-	let props = histogramData;
-	return <div class="t20160910-sidebar-nav">{props.histogram.map((row)=>
-		<div class={"t20160910-histogram" + (row[0]==props.year ? " t20160910-active" : "")}>
+let HistogramSidebar = (props: HistogramProps) => {
+	return <div class="sidebar-container"><div class="t20160910-sidebar-nav">{props.histogram.map((row)=>
+		<div class={"t20160910-histogram" + (row[0]==props.year || props.year===undefined ? " t20160910-active" : "")}>
 			<h3>{row[0]}</h3><ol class="t20160910-months t20160910-unstyled">{row[1].map((count, month)=> count
-				? <li><a href="#" class={"t20160910-with-tweets" + (row[0]==props.year && month+1==props.month ? " t20160910-active" : "")} rel="tooltip"
-					onClick={(ev)=>props.selectMonth(row[0], month+1)}>
+				? <li><a href="#" class={"t20160910-with-tweets" + (row[0]==props.year && month+1==props.month && props.year !== undefined ? " t20160910-active" : "")}
+					onClick={(ev)=>props.selectMonth(row[0], month+1)}
+					title={`${monthNames[month]} ${row[0]}: ${count} Tweets`}>
 						<span class="t20160910-bar" style={`height: ${100*count/props.max_tweets}%;`}></span></a></li>
-				: <li class="t20160910-without-tweets" title="" rel="tooltip"></li>
+				: <li class="t20160910-without-tweets" title=""></li>
 			)}</ol>
 		</div>
 	)}
 	{props.year !== undefined ? <a href="#">Reset selection</a> : []}
-	</div>
+	</div></div>
 };
 
 type Tab = {
@@ -662,7 +659,12 @@ class App extends Component<AppProps> {
 				{parts}
 			</div>
 		</div>;
-		let sidebar = <HistogramSidebar/>;
+		let sidebar = <HistogramSidebar
+			// year={2021}
+			// month={10}
+			max_tweets={this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0}
+			histogram={this.props.histogram !== undefined ? this.props.histogram.histogram : []}
+			selectMonth={console.log}/>;
 		return [timeline, sidebar];
 	}
 }

@@ -1,6 +1,6 @@
 from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
 
-import os.path, time, sys
+import os.path, time, datetime, sys
 sys.path.append(os.path.dirname(__file__) + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
 
@@ -105,47 +105,68 @@ class ClientAPI:
 
 ca = ClientAPI(db)
 
+def paginated_tweets(response):
+	tweets = response["tweets"]
+	histogram = {}
+	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	for tweet in tweets:
+		if tweet and "created_at" in tweet:
+			date = datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
+			histogram.setdefault(date.year, zeroes[:])[date.month-1] += 1
+	if not histogram:
+		return response
+	min_year = min(histogram.keys())
+	max_year = max(histogram.keys())
+	max_tweets = max(max(row) for row in histogram.values())
+	histogram = [(year, histogram.get(year, zeroes)) for year in range(max_year, min_year-1, -1)]
+	response["histogram"] = {
+		"max_tweets": max_tweets,
+		"histogram": histogram
+	}
+	response["tweets"] = response["tweets"][:200]
+	return response
+
 @route('/api/profile/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.profile_view(uid) #[:200]
-	}
+		"tweets": ca.profile_view(uid)
+	})
 
 @route('/api/replies/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.with_replies_view(uid) #[:200]
-	}
+		"tweets": ca.with_replies_view(uid)
+	})
 
 @route('/api/media/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.media_view(uid) #[:200]
-	}
+		"tweets": ca.media_view(uid)
+	})
 
 @route('/api/likes/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.likes_view(uid) #[:200]
-	}
+		"tweets": ca.likes_view(uid)
+	})
 
 @route('/api/bookmarks/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.bookmarks_view(uid) #[:200]
-	}
+		"tweets": ca.bookmarks_view(uid)
+	})
 
 @route('/api/interactions/<uid:int>')
 def profile(uid):
-	return {
+	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.interactions_view(uid)[:200]
-	}
+		"tweets": ca.interactions_view(uid)
+	})
 
 @route('/api/followers/<uid:int>')
 def thread(uid):

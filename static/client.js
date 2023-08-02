@@ -465,14 +465,16 @@ class App extends Component {
         }
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })));
         parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { t: tweet, u: tweet.user }) : []));
-        return parts;
+        let timeline = h("div", { class: "common-frame-600 theme-dim" },
+            h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
+        return [timeline];
     }
 }
 let div = null;
 let logic = new Logic((props) => render(h(App, props), div));
 window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1)));
 window.addEventListener("load", () => {
-    div = document.getElementById("timeline0");
+    div = document.getElementById("root");
     render(h(App, { tweets: [], tab: 0 }), div);
     logic.navigateReal(window.location.pathname.slice(1));
 });

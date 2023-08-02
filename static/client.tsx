@@ -622,7 +622,12 @@ class App extends Component<AppProps> {
 		}
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem p={profile}/>));
 		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet t={tweet} u={tweet.user}/> : []));
-		return parts;
+		let timeline = <div class="common-frame-600 theme-dim">
+			<div class="t20230403-timeline" tabIndex={0}>
+				{parts}
+			</div>
+		</div>;
+		return [timeline];
 	}
 }
 
@@ -630,7 +635,7 @@ let div = null;
 let logic = new Logic((props) => render(h(App, props), div));
 window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1)));
 window.addEventListener("load", () => {
-	div = document.getElementById("timeline0");
+	div = document.getElementById("root");
 	render(<App tweets={[]} tab={0}/>, div);
 	logic.navigateReal(window.location.pathname.slice(1));
 });

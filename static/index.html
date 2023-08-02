@@ -713,7 +713,11 @@
 			background-color: rgb(29, 155, 240);
 			content: "";
 		}
-
+		body {
+			position: relative;
+			display: flow-root;
+			margin: 0;
+		}
 	</style>
 	<script type="importmap">
 		{
@@ -725,10 +729,6 @@
 	<script type="module" src="/p/dist/preact.mjs"></script>
 	<script type="module" src="/client.js"></script>
 </head>
-<body>
-	<div class="common-frame-600 theme-dim">
-		<div class="t20230403-timeline" tabindex="0" id="timeline0">
-		</div>
-	</div>
+<body id="root">
 </body>
 </html>

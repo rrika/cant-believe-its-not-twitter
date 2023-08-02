@@ -1,4 +1,4 @@
-import { h, render, Component } from 'preact';
+import { h, render, Component, Fragment } from 'preact';
 class Logic {
     constructor(updateFn) {
         this.updateFn = updateFn;
@@ -133,6 +133,18 @@ let dateFormat = (datestr) => {
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     return `${months[date.getMonth()]} ${date.getDate()}`;
 };
+let TweetText = (props) => {
+    let tweet = props.tweet;
+    let text = tweet.full_text;
+    if (tweet.display_text_range !== undefined) {
+        text = text.slice(tweet.display_text_range[0], tweet.display_text_range[1]);
+    }
+    if (text.indexOf("<") >= 0) {
+        console.log("tweet has unescaped html", tweet);
+        return h(Fragment, null, "text");
+    }
+    return h("span", { dangerouslySetInnerHTML: { __html: text } });
+};
 let Tweet = (props) => {
     let t = props.t;
     let id_str = props.t.id_str;
@@ -186,7 +198,8 @@ let Tweet = (props) => {
                     h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
                     h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(props.t.created_at)),
                     h("span", { class: "t20230403-user-line-menu" })),
-                h("div", { class: "t20230403-contents" }, props.t.full_text),
+                h("div", { class: "t20230403-contents" },
+                    h(TweetText, { tweet: props.t })),
                 embeds && h("div", { class: "t20230624-embeds" }, embeds),
                 h(TweetActions, { t: props.t }))));
 };
@@ -201,7 +214,8 @@ let QuotedTweet = (props) => {
                     props.u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
                 h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, dateFormat(props.t.created_at)))),
-        h("div", { class: "t20230630-qrt-bottom t20230403-contents" }, props.t.full_text));
+        h("div", { class: "t20230630-qrt-bottom t20230403-contents" },
+            h(TweetText, { tweet: props.t })));
 };
 let ProfileItem = (props) => {
     let p = props.p;

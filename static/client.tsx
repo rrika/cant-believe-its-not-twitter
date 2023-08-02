@@ -35,6 +35,7 @@ type TweetInfo = {
 	user: LegacyProfile,
 	user_id_str: string,
 	created_at: string,
+	display_text_range?: [number, number],
 
 	bookmarkers?: string[],
 	favoriters?: string[],
@@ -208,6 +209,20 @@ let dateFormat = (datestr: string) => {
 	return `${months[date.getMonth()]} ${date.getDate()}`;
 };
 
+let TweetText = (props: {tweet: TweetInfo}) => {
+	let tweet = props.tweet;
+	let text = tweet.full_text;
+	if (tweet.display_text_range !== undefined) {
+		text = text.slice(tweet.display_text_range[0], tweet.display_text_range[1]);
+	}
+	if (text.indexOf("<") >= 0) {
+		console.log("tweet has unescaped html", tweet);
+		return <>text</>;
+	}
+
+	return <span dangerouslySetInnerHTML={{__html: text}}/>;
+};
+
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
 	let id_str = props.t.id_str;
@@ -266,7 +281,7 @@ let Tweet = (props: TweetProps) => {
 					<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{dateFormat(props.t.created_at)}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
-				<div class="t20230403-contents">{props.t.full_text}</div>
+				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
 				{embeds && <div class="t20230624-embeds">{embeds}</div>}
 				<TweetActions t={props.t}/>
 			</div>
@@ -286,7 +301,7 @@ let QuotedTweet = (props: TweetProps) => {
 			</div>
 		</div>
 		<div class="t20230630-qrt-bottom t20230403-contents">
-			{props.t.full_text}
+			<TweetText tweet={props.t}/>
 		</div>
 	</div>;
 }

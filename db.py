@@ -692,13 +692,6 @@ class DB:
 
 db = DB()
 
-for fname in os.listdir("."):
-	if fname.endswith(".har"):
-		with open(fname) as f:
-			har = json.load(f)
-		db.load_har(har)
-		del har
-
 try:
 	archive_paths = []
 	with open("exports.txt") as f:
@@ -710,6 +703,14 @@ for l in archive_paths:
 	if l and not l.startswith("#"):
 		print(l)
 		db.load(l)
+
+# archive data is broken for RTs so apply HAR later to overwrite that
+for fname in os.listdir("."):
+	if fname.endswith(".har"):
+		with open(fname) as f:
+			har = json.load(f)
+		db.load_har(har)
+		del har
 
 db.sort_profiles()
 

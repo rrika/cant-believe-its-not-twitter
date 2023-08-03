@@ -145,10 +145,26 @@ let TweetText = (props) => {
     }
     return h("span", { dangerouslySetInnerHTML: { __html: text } });
 };
+let AnonymousTweet = (props) => {
+    return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0 },
+        h("div", { class: "t20230403-tweet-split" },
+            h("div", { class: "t20230403-avatar-column" }),
+            h("div", { class: "t20230403-main-column" },
+                h("div", { class: "t20230403-user-line" },
+                    h("span", { class: "t20230403-user-line-displayname" }, "Unknown"),
+                    h("span", { class: "t20230403-user-line-handle", tabIndex: -1 }, "@unknown"),
+                    h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
+                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/i/web/status/${props.t.id_str}` }, "somewhen"),
+                    h("span", { class: "t20230403-user-line-menu" })),
+                h("div", { class: "t20230403-contents" },
+                    h(TweetText, { tweet: props.t })))));
+};
 let Tweet = (props) => {
     let t = props.t;
     let id_str = props.t.id_str;
     let user_id_str = props.t.user_id_str;
+    if (!user_id_str)
+        return h(AnonymousTweet, { t: t });
     let selectTweet = (e) => {
         e.preventDefault();
         logic.navigate("thread/" + id_str);

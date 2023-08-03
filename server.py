@@ -1,6 +1,6 @@
 from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
 
-import time
+import os.path, time
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
 
 use_twitter_cdn_for_images = False
@@ -31,14 +31,14 @@ class ClientAPI:
 		if "quoted_status_id_str" in tweet:
 			quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
 
-		if user or entities or quoted_status:
-			tweet = tweet.copy()
-			if user:
-				tweet["user"] = user
-			if entities:
-				tweet["entities"] = entities
-			if quoted_status:
-				tweet["quoted_status"] = quoted_status
+		tweet = tweet.copy()
+		if user:
+			tweet["user"] = user
+		if entities:
+			tweet["entities"] = entities
+		if quoted_status:
+			tweet["quoted_status"] = quoted_status
+		del tweet["original_id"]
 		return tweet
 
 	def get_original(self, tweet):

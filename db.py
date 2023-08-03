@@ -1,4 +1,6 @@
-import json, os, base64
+import json, os, base64, os.path, re
+import datetime
+import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs
 
 class OnDisk:
@@ -17,9 +19,8 @@ class MediaStore:
 
 	# add images
 
-	def add_from_archive(self, base):
+	def add_from_archive(self, tweet_media):
 		r = re.compile(r"(\d+)-([A-Za-z0-9_\-]+)\.(.*)")
-		tweet_media = os.path.join(base, "data", "tweet_media")
 		for media_fname in os.listdir(tweet_media):
 			m = r.match(media_fname)
 			if not m:
@@ -101,14 +102,16 @@ class DB:
 		self.followings = {} # could be part of .profiles
 		self.by_user = {}
 		self.media = MediaStore()
-		self.likes_map = {}
+		self.likes_snapshots = {}
 		self.likes_sorted = {}
+		self.likes_unsorted = {}
 		self.bookmarks_map = {}
 		self.bookmarks_sorted = {}
 		self.interactions_sorted = {}
 		self.observers = set()
 
 		# context
+		self.time = None
 		self.uid = None
 
 	def sort_profiles(self):
@@ -118,9 +121,9 @@ class DB:
 			tids.sort(key=lambda twid: -twid)
 
 		# likes in reverse chronological order
-		for uid, likes in self.likes_map.items():
-			l = sorted(likes.items(), key=lambda a: -a[1])
-			l = [twid for twid, sort_index in l]
+		for uid, likes_snapshots in self.likes_snapshots.items():
+			l = seqalign.align(sorted(likes_snapshots, key=lambda snap: -snap.time))
+			l = [twid for sort_index, twid in l]
 			self.likes_sorted[uid] = l
 
 		# bookmarks in reverse chronological order
@@ -139,7 +142,7 @@ class DB:
 						self.add_follow(a, b)
 
 		# likes are interactions
-		for uid, likes in self.likes_map.items():
+		def likes_are_interactions(uid, likes):
 			if uid in self.observers:
 				for twid in likes:
 					if twid in self.tweets:
@@ -147,6 +150,10 @@ class DB:
 						if "user_id_str" in tweet:
 							u = int(tweet["user_id_str"])
 							self.interactions_sorted.setdefault(u, []).append(twid)
+		for uid, likes in self.likes_sorted.items():
+			likes_are_interactions(uid, likes)
+		for uid, likes in self.likes_unsorted.items():
+			likes_are_interactions(uid, likes)
 
 		# interactions in reverse chronological order
 		for tids in self.interactions_sorted.values():
@@ -185,7 +192,112 @@ class DB:
 	def get_user_bookmarks(self, uid):
 		return self.bookmarks_sorted.get(uid, [])
 
-	# loading
+	# twitter archives
+
+	def load_with_prefix(self, base, fname, expected_prefix):
+		with open(os.path.join(base, fname)) as f:
+			prefix = f.read(len(expected_prefix))
+			assert prefix == expected_prefix
+			return json.load(f)
+
+	def load(self, base):
+		if os.path.exists(os.path.join(base, "data", "tweets.js")):
+			# browsable archives from ~2022
+			base = os.path.join(base, "data")
+			tweets = self.load_with_prefix(base, "tweets.js", "window.YTD.tweets.part0 = ")
+			tweets_media = os.path.join(base, "tweets_media")
+
+		elif os.path.exists(os.path.join(base, "data", "tweet.js")):
+			# browsable archives from ~2020
+			base = os.path.join(base, "data")
+			tweets = self.load_with_prefix(base, "tweet.js", "window.YTD.tweet.part0 = ")
+			tweets_media = os.path.join(base, "tweet_media")
+
+		elif os.path.exists(os.path.join(base, "data", "js", "tweet_index.js")):
+			# browsable archives from ~2019
+			print("unsupported archive format:", base)
+			return
+
+		elif os.path.exists(os.path.join(base, "tweet.js")):
+			# raw archives from ~2018
+			tweets = self.load_with_prefix(base, "tweet.js", "window.YTD.tweet.part0 = ")
+			tweets_media = os.path.join(base, "tweet_media")
+			tweets_media = None # the filenames don't allow any association back to their tweets
+
+		likes = self.load_with_prefix(base, "like.js", "window.YTD.like.part0 = ")
+		account = self.load_with_prefix(base, "account.js", "window.YTD.account.part0 = ")[0]["account"]
+		profile = self.load_with_prefix(base, "profile.js", "window.YTD.profile.part0 = ")[0]["profile"]
+		uid = account["accountId"]
+
+		if os.path.exists(os.path.join(base, "manifest.js")):
+			manifest = self.load_with_prefix(base, "manifest.js", "window.__THAR_CONFIG = ")
+			generation_date = manifest["archiveInfo"]["generationDate"] # 2020-12-31T23:59:59.999Z
+			generation_date = datetime.datetime.fromisoformat(generation_date)
+			self.time = generation_date.timestamp() * 1000
+		else:
+			self.time = os.path.getmtime(base) * 1000
+
+		self.uid = int(uid)
+
+		user = {
+			"screen_name": account["username"],
+			"name": account["accountDisplayName"],
+			"description": profile["description"]["bio"],
+			"user_id_str": uid,
+			#"followed_by":
+			#"protected":
+		}
+		if "headerMediaUrl" in profile:
+			user["profile_banner_url"] = profile["headerMediaUrl"]
+
+		if "avatarMediaUrl" in profile:
+			user["profile_image_url_https"] = profile["avatarMediaUrl"]
+
+		self.observers.add(int(uid))
+		self.add_legacy_user(user, uid)
+
+		for i, entry in enumerate(tweets):
+			tweet = entry.get("tweet", entry) # wrapped from ~2020 onwards
+			for attr in [
+				"in_reply_to_screen_name",
+				"in_reply_to_status_id",
+				"in_reply_to_status_id_str",
+				"in_reply_to_user_id",
+				"in_reply_to_user_id_str"
+			]:
+				if attr in tweet and tweet[attr] is None:
+					del tweet[attr] # normalize old tweet format from 2018
+			tweet["user_id_str"] = uid
+			tweet["original_id"] = int(tweet["id_str"])
+			self.add_legacy_tweet(tweet)
+
+		like_twids = []
+
+		for like in likes:
+			like = like["like"]
+			twid = int(like["tweetId"])
+			like_twids.append(twid)
+			if "fullText" not in like:
+				continue
+			#elif like["fullText"] == "You’re unable to view this Tweet because this account owner limits who can view their Tweets. {learnmore}":
+			#	continue
+			fake_tweet = {
+				"full_text": like["fullText"],
+				"id_str": like["tweetId"],
+				"original_id": twid
+			}
+			if twid in self.tweets:
+				continue
+			self.tweets[twid] = fake_tweet
+
+		snapshot = seqalign.Items(like_twids)
+		snapshot.time = self.time
+		self.likes_snapshots.setdefault(self.uid, []).append(snapshot)
+
+		if tweets_media:
+			self.media.add_from_archive(tweets_media)
+
+	# general loading
 
 	def add_legacy_tweet(self, tweet):
 		twid = int(tweet["id_str"])
@@ -205,7 +317,7 @@ class DB:
 			if favorited:
 				g = dbtweet.setdefault("favoriters", [])
 				if observer not in g: g.append(observer)
-				self.likes_map.setdefault(self.uid, {}).setdefault(twid, 0) # unknown like
+				self.likes_unsorted.setdefault(self.uid, set()).add(twid) # unknown like
 			if retweeted:
 				g = dbtweet.setdefault("retweeters", [])
 				if observer not in g: g.append(observer)
@@ -371,6 +483,8 @@ class DB:
 			return json.loads(q["variables"][0])
 
 	def load_gql(self, path, data, context):
+		self.time = context and context["timeStamp"]
+
 		if context and context.get("cookies", None):
 			cookies = {entry["name"]: entry["value"] for entry in context["cookies"]}
 		else:
@@ -424,7 +538,8 @@ class DB:
 			whose_likes = int(gql_vars["userId"])
 			likes_timeline = self.add_user(data["user"]["result"], give_timeline_v2=True)
 			layout, cursors = self.add_with_instructions(likes_timeline["timeline"])
-			user_likes = self.likes_map.setdefault(whose_likes, {})
+
+			likes = []
 			for entry in layout:
 				if entry is None:
 					continue # non-tweet timeline item
@@ -432,7 +547,15 @@ class DB:
 				if twid is None:
 					continue # tweet deleted or on locked account
 				assert isinstance(twid, int)
-				user_likes[twid] = max(sort_index, user_likes.get(twid, sort_index))
+				likes.append((sort_index, twid))
+			cursors = [(cname, cdata["value"]) for cname, cdata in cursors]
+
+			snapshot = seqalign.Events(likes)
+			snapshot.time = self.time
+			snapshot.continue_from = gql_vars.get("cursor", None)
+
+			snapshots = self.likes_snapshots.setdefault(whose_likes, [])
+			snapshots.append(snapshot)
 
 		elif path.endswith("/Bookmarks"):
 			layout, cursors = self.add_with_instructions(data["bookmark_timeline_v2"]["timeline"])
@@ -547,16 +670,18 @@ class DB:
 			url = entry["request"]["url"]
 			response = entry["response"]["content"]
 			if response:
-				context = {
-					"url": url,
-					"cookies": entry["request"]["cookies"]
-				}
+				time = datetime.datetime.fromisoformat(entry["startedDateTime"])
 				if "text" not in response:
 					print("missing ", url)
 					if "comment" in response:
 						print(" ", response["comment"])
 					any_missing = True
 					continue
+				context = {
+					"url": url,
+					"timeStamp": time.timestamp() * 1000,
+					"cookies": entry["request"]["cookies"]
+				}
 				data = response["text"]
 				if response.get("encoding", None) == "base64":
 					data = base64.b64decode(data)
@@ -573,6 +698,18 @@ for fname in os.listdir("."):
 			har = json.load(f)
 		db.load_har(har)
 		del har
+
+try:
+	archive_paths = []
+	with open("exports.txt") as f:
+		archive_paths = [l.strip() for l in f.readlines()]
+finally:
+	pass
+
+for l in archive_paths:
+	if l and not l.startswith("#"):
+		print(l)
+		db.load(l)
 
 db.sort_profiles()
 

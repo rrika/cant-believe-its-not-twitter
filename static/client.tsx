@@ -223,10 +223,32 @@ let TweetText = (props: {tweet: TweetInfo}) => {
 	return <span dangerouslySetInnerHTML={{__html: text}}/>;
 };
 
+let AnonymousTweet = (props: {t: TweetInfo}) => {
+	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0}>
+		<div class="t20230403-tweet-split">
+			<div class="t20230403-avatar-column">
+			</div>
+			<div class="t20230403-main-column">
+				<div class="t20230403-user-line">
+					<span class="t20230403-user-line-displayname">Unknown</span>
+					<span class="t20230403-user-line-handle" tabIndex={-1}>@unknown</span>
+					<span class="t20230403-user-line-punctuation">·</span>
+					<a class="t20230403-user-line-time" href={`https://twitter.com/i/web/status/${props.t.id_str}`}>somewhen</a>
+					<span class="t20230403-user-line-menu"></span>
+				</div>
+				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
+			</div>
+		</div>
+	</div>;
+};
+
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
 	let id_str = props.t.id_str;
 	let user_id_str = props.t.user_id_str;
+	if (!user_id_str)
+		return <AnonymousTweet t={t}/>;
+
 	let selectTweet = (e: JSX.TargetedMouseEvent<HTMLElement>) => {
 		e.preventDefault();
 		logic.navigate("thread/"+id_str);

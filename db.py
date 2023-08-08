@@ -2,15 +2,7 @@ import json, os, base64, os.path, re
 import datetime
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs
-
-class OnDisk:
-	def __init__(self, path):
-		self.path = path
-
-class InMemory:
-	def __init__(self, mime, data):
-		self.mime = mime
-		self.data = data
+from har import HarStore, OnDisk, InMemory
 
 class MediaStore:
 	def __init__(self):
@@ -34,12 +26,12 @@ class MediaStore:
 			#imageset.append((fmt, size, path))
 			imageset.append(OnDisk(path))
 
-	def add_http_snapshot(self, url, mime, body):
+	def add_http_snapshot(self, url, item):
 		urlparts = urlparse(url)
 		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
 		name = os.path.basename(urlparts.path)
 		imageset = self.media_by_url.setdefault(cleanurl, [])
-		imageset.append(InMemory(mime, body))
+		imageset.append(item)
 
 	# check store
 
@@ -102,6 +94,7 @@ class DB:
 		self.followings = {} # could be part of .profiles
 		self.by_user = {}
 		self.media = MediaStore()
+		self.har = HarStore("harstore")
 		self.likes_snapshots = {}
 		self.likes_sorted = {}
 		self.likes_unsorted = {}
@@ -614,6 +607,10 @@ class DB:
 		elif path.endswith("/UsersByRestIds"):
 			for user in data["users"]:
 				self.add_user(user)
+		elif path.endswith("/SearchTimeline"):
+			self.add_with_instructions(data["search_by_raw_query"]["search_timeline"]["timeline"])
+		elif path.endswith("/FavoriteTweet"):
+			pass
 		elif path.endswith("/CreateRetweet"):
 			pass # todo
 		elif path.endswith("/FollowersYouKnow"):
@@ -623,9 +620,9 @@ class DB:
 		elif path.endswith("/articleNudgeDomains"):
 			pass # todo
 		else:
-			assert False
+			assert False, path
 
-	def load_api(self, data, context, mime_type):
+	def load_api(self, item, context):
 		url = context["url"]
 		path = urlparse(url).path
 
@@ -649,11 +646,11 @@ class DB:
 
 		if url.startswith("https://pbs.twimg.com/"):
 			print("media   ", fname, path)
-			self.media.add_http_snapshot(url, mime_type, data)
+			self.media.add_http_snapshot(url, item)
 			return
 
 		try:
-			data = json.loads(data)
+			data = json.load(item.open())
 		except:
 			print("not json", fname, path)
 			return
@@ -664,14 +661,18 @@ class DB:
 		else:
 			print("skipping", fname, path)
 
-	def load_har(self, har):
+	def load_har(self, fname):
+		lhar = self.har.load(fname)
 		any_missing = False
-		for entry in har["log"]["entries"]:
+		for entry in lhar["log"]["entries"]:
 			url = entry["request"]["url"]
+			if "video.twimg.com/ext_tw_video" in url:
+				continue # firefox HAR says base64 encoding even though that's a lie
 			response = entry["response"]["content"]
 			if response:
 				time = datetime.datetime.fromisoformat(entry["startedDateTime"])
-				if "text" not in response:
+				item = self.har.get_lhar_entry(entry)
+				if not item:
 					print("missing ", url)
 					if "comment" in response:
 						print(" ", response["comment"])
@@ -682,10 +683,7 @@ class DB:
 					"timeStamp": time.timestamp() * 1000,
 					"cookies": entry["request"]["cookies"]
 				}
-				data = response["text"]
-				if response.get("encoding", None) == "base64":
-					data = base64.b64decode(data)
-				self.load_api(data, context, response.get("mimeType", None))
+				self.load_api(item, context)
 
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")
@@ -707,10 +705,8 @@ for l in archive_paths:
 # archive data is broken for RTs so apply HAR later to overwrite that
 for fname in os.listdir("."):
 	if fname.endswith(".har"):
-		with open(fname) as f:
-			har = json.load(f)
-		db.load_har(har)
-		del har
+		db.har.add(fname, skip_if_exists=True)
+		db.load_har(fname)
 
 db.sort_profiles()
 

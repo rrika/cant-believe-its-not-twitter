@@ -206,7 +206,7 @@ def media(path):
 	if not cacheable and "HTTP_IF_MODIFIED_SINCE" in request.environ:
 		del request.environ["HTTP_IF_MODIFIED_SINCE"]
 	if isinstance(item, OnDisk):
-		response = static_file(os.path.basename(item.path), root=os.path.dirname(item.path))
+		response = static_file(os.path.basename(item.path), root=os.path.dirname(item.path), mimetype=getattr(item, "mime", "auto"))
 	elif isinstance(item, InMemory):
 		# todo: caching headers, range queries?
 		response = static_blob(item.data, item.mime)

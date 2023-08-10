@@ -133,7 +133,7 @@ let dateFormat = (datestr) => {
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     return `${months[date.getMonth()]} ${date.getDate()}`;
 };
-let TweetText = (props) => {
+let SimpleTweetText = (props) => {
     let tweet = props.tweet;
     let text = tweet.full_text;
     if (tweet.display_text_range !== undefined) {
@@ -144,6 +144,128 @@ let TweetText = (props) => {
         return h(Fragment, null, "text");
     }
     return h("span", { dangerouslySetInnerHTML: { __html: text } });
+};
+let surrogatesRegex = /[\uD800-\uDBFF][\uDC00-\uDFFF]/gm;
+let strlenUtf16 = (e) => e.replace(surrogatesRegex, ' ').length;
+let translateRange = (text, begin, end) => {
+    if (text.length - strlenUtf16(text) > 0) {
+        const asArray = Array.from(text);
+        let prefix = 0 === begin ? '' : asArray.slice(0, begin).join('');
+        let slice = asArray.slice(begin, end).join('');
+        return [prefix.length, prefix.length + slice.length];
+    }
+    return [begin, end];
+};
+let prepareEntities = (entities, kind, text) => {
+    if (!entities)
+        return [];
+    return entities.map((e) => ({
+        kind: kind,
+        indices: translateRange(text, e.indices[0], e.indices[1]),
+        ...e
+    }));
+};
+let partsForTweetEntities = (tweet) => {
+    let parts = [];
+    let text = tweet.full_text;
+    let entities = tweet.entities;
+    parts.push(...prepareEntities(entities.media, "media", text));
+    parts.push(...prepareEntities(entities.urls, "url", text));
+    parts.push(...prepareEntities(entities.hashtags, "hashtag", text));
+    parts.push(...prepareEntities(entities.symbols, "cashtag", text));
+    parts.push(...prepareEntities(entities.user_mentions, "mention", text));
+    return parts;
+};
+let TweetText = (props) => {
+    let tweet = props.tweet;
+    let full_text = tweet.full_text;
+    let entities = partsForTweetEntities(tweet);
+    entities.sort((a, b) => a.indices[0] - b.indices[0]);
+    let [displayStart, displayEnd] = translateRange(tweet.full_text, tweet.display_text_range[0], tweet.display_text_range[1]);
+    let parts = [];
+    {
+        // in here assume the text goes all the way to the end
+        // this affects anyMedia as it now catches entities past the display end
+        let displayEnd = tweet.full_text.length;
+        let offset = displayStart;
+        for (let entity of entities) {
+            let [begin, end] = entity.indices;
+            // text between entities
+            let textEnd = displayEnd;
+            if (textEnd > begin)
+                textEnd = begin;
+            if (offset < begin)
+                parts.push({
+                    indices: [offset, textEnd],
+                    kind: "text",
+                    text: full_text.slice(offset, textEnd)
+                });
+            if (begin >= displayStart && end <= displayEnd) {
+                parts.push(entity);
+                if (offset < end)
+                    offset = end;
+            }
+        }
+        if (offset < displayEnd)
+            parts.push({
+                indices: [offset, displayEnd],
+                kind: "text",
+                text: full_text.slice(offset, displayEnd)
+            });
+    }
+    let twitterRegex = /^https?:\/\/(?:(?:(?:m(?:obile)?)|(?:www)|)\.)?twitter\.com\/@?([_\w\d]+)\/status(?:es)?\/([\d]+)\/?/;
+    let anyMedia = parts.some((part) => part.kind == "media");
+    let cardUrl = tweet.card && tweet.card.url;
+    parts = parts.filter((part, n) => {
+        let last = n == parts.length - 1;
+        let qrt = false;
+        if (part.kind == "media")
+            return false;
+        if (part.kind == "url" && tweet.quoted_status) {
+            let m = part.expanded_url.match(twitterRegex);
+            if (m) {
+                let [, screen_name, tweet_id] = m;
+                qrt = tweet_id == tweet.quoted_status.id_str;
+            }
+        }
+        if (qrt && anyMedia && part.indices[1] == displayEnd)
+            return false;
+        if (last && qrt && !anyMedia)
+            return false;
+        if (last && !tweet.quoted_status && cardUrl && (cardUrl == part.url || cardUrl == part.expanded_url))
+            return false;
+        return true;
+    });
+    let vdom = [];
+    parts.forEach((part, index) => {
+        if (part.kind == "text") {
+            let isFirst = index == 0;
+            let isLast = index == parts.length - 1;
+            if (!part.text.trim() && (isFirst || isLast))
+                return;
+            let text = part.text;
+            if (isLast)
+                text = text.replace(/(\s+$)/g, '');
+            if (text.indexOf("<") >= 0)
+                vdom.push(text);
+            else
+                vdom.push(h("span", { dangerouslySetInnerHTML: { __html: text } }));
+        }
+        else if (part.kind == "url") {
+            let urle = part;
+            vdom.push(h("a", { href: urle.expanded_url }, urle.display_url));
+        }
+        else if (part.kind == "mention") {
+            let usere = part;
+            vdom.push(h("a", { href: "/profile/" + usere.id_str },
+                "@",
+                usere.screen_name));
+        }
+        else {
+            vdom.push(`[unhandled ${part.kind} entity]`);
+        }
+    });
+    return h(Fragment, null, vdom);
 };
 let AnonymousTweet = (props) => {
     return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0 },

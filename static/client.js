@@ -338,7 +338,7 @@ let Tweet = (props) => {
                     h("span", { class: "t20230403-user-line-menu" })),
                 h("div", { class: "t20230403-contents" },
                     h(TweetText, { tweet: props.t })),
-                embeds && h("div", { class: "t20230624-embeds" }, embeds),
+                embeds.length ? h("div", { class: "t20230624-embeds" }, embeds) : [],
                 h(TweetActions, { t: props.t }))));
 };
 let QuotedTweet = (props) => {

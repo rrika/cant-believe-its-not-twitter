@@ -449,7 +449,7 @@ let Tweet = (props: TweetProps) => {
 					<span class="t20230403-user-line-menu"></span>
 				</div>
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
-				{embeds && <div class="t20230624-embeds">{embeds}</div>}
+				{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
 				<TweetActions t={props.t}/>
 			</div>
 		</div>

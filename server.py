@@ -1,6 +1,7 @@
 from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
 
-import os.path, time
+import os.path, time, sys
+sys.path.append(os.path.dirname(__file__) + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
 
 use_twitter_cdn_for_images = False

@@ -672,8 +672,8 @@ class App extends Component<AppProps> {
 		} else {
 			parts.push(<Header/>);
 		}
-		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem p={profile}/>));
-		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet t={tweet} u={tweet.user}/> : []));
+		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
+		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet key={tweet.id_str} t={tweet} u={tweet.user}/> : []));
 		let timeline = <div class="common-frame-600 theme-dim">
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}

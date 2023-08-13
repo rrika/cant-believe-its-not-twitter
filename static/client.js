@@ -489,8 +489,8 @@ class App extends Component {
         else {
             parts.push(h(Header, null));
         }
-        parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { p: profile })));
-        parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { t: tweet, u: tweet.user }) : []));
+        parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
+        parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user }) : []));
         let timeline = h("div", { class: "common-frame-600 theme-dim" },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
         let sidebar = h(HistogramSidebar

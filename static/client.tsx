@@ -1,7 +1,16 @@
 import { h, render, Component, Fragment, JSX, VNode } from 'preact';
 
+type Entities = {
+	hashtags: any[],
+	symbols: any[],
+	user_mentions: UserMention[],
+	urls: UrlEntity[],
+	media?: MediaEntity[]
+};
+
 type LegacyProfile = {
 	description: string,
+	entities: {description: Entities},
 	name: string,
 	screen_name: string,
 	profile_banner_url?: string,
@@ -41,13 +50,7 @@ type TweetInfo = {
 	retweet_count: string,
 	reply_count: string,
 	id_str: string,
-	entities?: {
-		hashtags: any[],
-		symbols: any[],
-		user_mentions: UserMention[],
-		urls: UrlEntity[],
-		media?: MediaEntity[]
-	},
+	entities?: Entities,
 	user: LegacyProfile,
 	user_id_str: string,
 	created_at: string,
@@ -264,10 +267,8 @@ let prepareEntities = (entities, kind, text) => {
 		indices: translateRange(text, e.indices[0], e.indices[1])
 	}));
 };
-let partsForTweetEntities = (tweet: TweetInfo) => {
+let partsForTweetEntities = (text: string, entities: Entities) => {
 	let parts = [];
-	let text = tweet.full_text;
-	let entities = tweet.entities;
 	if (entities === undefined)
 		return [];
 	parts.push(...prepareEntities(entities.media, "media", text));
@@ -279,21 +280,40 @@ let partsForTweetEntities = (tweet: TweetInfo) => {
 };
 let TweetText = (props: {tweet: TweetInfo}) => {
 	let tweet = props.tweet;
-	let full_text = tweet.full_text;
+	return TextWithEntities({
+		full_text: tweet.full_text,
+		entities: tweet.entities,
+		display_text_range: tweet.display_text_range,
+		card_url: tweet.card && tweet.card.url,
+		quoted_status_id_str: tweet.quoted_status && tweet.quoted_status.id_str
+	});
+};
 
-	let entities = partsForTweetEntities(tweet);
+let TextWithEntities = (props: {
+	full_text: string,
+	entities: Entities,
+	display_text_range: [number, number],
+
+	card_url?: string,
+	quoted_status_id_str?: string
+}) => {
+	let full_text = props.full_text;
+	let entities = partsForTweetEntities(full_text, props.entities);
 	entities.sort((a, b) => a.indices[0] - b.indices[0]);
 
-	let [displayStart, displayEnd] = translateRange(
-		tweet.full_text,
-		tweet.display_text_range[0],
-		tweet.display_text_range[1]);
+	let [displayStart, displayEnd] =
+		props.display_text_range !== undefined
+		? translateRange(
+			props.full_text,
+			props.display_text_range[0],
+			props.display_text_range[1])
+		: [0, props.full_text.length];
 
 	let parts = [];
 	{
 		// in here assume the text goes all the way to the end
 		// this affects anyMedia as it now catches entities past the display end
-		let displayEnd = tweet.full_text.length;
+		let displayEnd = props.full_text.length;
 
 		let offset = displayStart;
 		for (let entity of entities) {
@@ -324,24 +344,24 @@ let TweetText = (props: {tweet: TweetInfo}) => {
 
 	let twitterRegex = /^https?:\/\/(?:(?:(?:m(?:obile)?)|(?:www)|)\.)?twitter\.com\/@?([_\w\d]+)\/status(?:es)?\/([\d]+)\/?/;
 	let anyMedia = parts.some((part) => part.kind == "media");
-	let cardUrl = tweet.card && tweet.card.url;
+	let cardUrl = props.card_url;
 	parts = parts.filter((part, n) => {
 		let last = n == parts.length-1;
 		let qrt = false;
 		if (part.kind == "media")
 			return false;
-		if (part.kind == "url" && tweet.quoted_status) {
+		if (part.kind == "url" && props.quoted_status_id_str !== undefined) {
 			let m = part.expanded_url.match(twitterRegex);
 			if (m) {
 				let [, screen_name, tweet_id] = m;
-				qrt = tweet_id == tweet.quoted_status.id_str;
+				qrt = tweet_id == props.quoted_status_id_str;
 			}
 		}
 		if (qrt && anyMedia && part.indices[1] == displayEnd)
 			return false;
 		if (last && qrt && !anyMedia)
 			return false;
-		if (last && !tweet.quoted_status && cardUrl && (cardUrl == part.url || cardUrl == part.expanded_url))
+		if (last && props.quoted_status_id_str === undefined && cardUrl && (cardUrl == part.url || cardUrl == part.expanded_url))
 			return false;
 		return true;
 	});
@@ -511,7 +531,7 @@ let ProfileItem = (props: ProfileProps) => {
 				</div>
 			</div>
 			<div class="t20230627-profile-li-bio t20230403-contents">
-				{p.description}
+				<TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
 			</div>
 		</div>
 	</div>;
@@ -549,7 +569,7 @@ let Profile2 = (p: LegacyProfile) =>
 				</div>
 			</div>
 			<div class="t20230627-profile-description">
-				{p.description}
+				<TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
 			</div>
 			<div class="t20230627-profile-attributes">
 			</div>

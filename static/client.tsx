@@ -60,6 +60,11 @@ type UrlEntity = {
 	indices: [string, string]
 };
 
+type HashtagEntity = {
+	text: string,
+	indices: [string, string]
+};
+
 type TweetInfo = {
 	full_text: string,
 	favorite_count: string,
@@ -399,6 +404,9 @@ let TextWithEntities = (props: {
 		} else if (part.kind == "url") {
 			let urle = part as UrlEntity;
 			vdom.push(<a href={urle.expanded_url}>{urle.display_url}</a>);
+		} else if (part.kind == "hashtag") {
+			let hashtage = part as HashtagEntity;
+			vdom.push(<a href={"#todo-hashtag-"+hashtage.text}>#{hashtage.text}</a>);
 		} else if (part.kind == "mention") {
 			let usere = part as UserMention;
 			vdom.push(<a href={"/profile/"+usere.id_str}>@{usere.screen_name}</a>);

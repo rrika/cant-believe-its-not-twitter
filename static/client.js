@@ -266,6 +266,12 @@ let TextWithEntities = (props) => {
             let urle = part;
             vdom.push(h("a", { href: urle.expanded_url }, urle.display_url));
         }
+        else if (part.kind == "hashtag") {
+            let hashtage = part;
+            vdom.push(h("a", { href: "#todo-hashtag-" + hashtage.text },
+                "#",
+                hashtage.text));
+        }
         else if (part.kind == "mention") {
             let usere = part;
             vdom.push(h("a", { href: "/profile/" + usere.id_str },

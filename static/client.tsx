@@ -26,6 +26,10 @@ type LegacyProfile = {
 
 type MediaEntity = {
 	indices: [string, string],
+	original_info: {
+		width: number,
+		height: number
+	},
 	media_url_https: string
 };
 
@@ -438,8 +442,29 @@ let Tweet = (props: TweetProps) => {
 
 	let embeds = [];
 	if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
-		let items = props.t.entities.media.map((media) => <TweetImage src={media.media_url_https}/>);
-		embeds.push(<MediaGrid items={items}/>);
+		let media = props.t.entities.media;
+		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https}/>);
+		if (items.length != 1) {
+			embeds.push(<MediaGrid items={items}/>);
+		} else {
+			// can this be done with CSS?
+			let {width, height} = media[0].original_info;
+			let columnWidth = 506;
+			let maxHeight = 510;
+			let aspect = width / height;
+			if (aspect < 0.75) aspect = 0.75;
+			if (aspect > 5) aspect = 5;
+			let fitHeight = columnWidth / aspect;
+			let fitWidth = maxHeight * aspect;
+			if (fitHeight > maxHeight) {
+				width = fitWidth;
+				height = maxHeight;
+			} else {
+				width = columnWidth;
+				height = fitHeight;
+			}
+			embeds.push(<div><div class="t20230624-embed-rounded-corners" style={`display: flex; width: ${width}px; height: ${height}px;`}>{items[0]}</div></div>);
+		}
 	}
 	if (t.quoted_status)
 		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user}/>);

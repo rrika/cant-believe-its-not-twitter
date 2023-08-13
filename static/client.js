@@ -315,8 +315,34 @@ let Tweet = (props) => {
     let userPath = "/profile/" + user_id_str;
     let embeds = [];
     if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
-        let items = props.t.entities.media.map((media) => h(TweetImage, { src: media.media_url_https }));
-        embeds.push(h(MediaGrid, { items: items }));
+        let media = props.t.entities.media;
+        let items = media.map((media) => h(TweetImage, { src: media.media_url_https }));
+        if (items.length != 1) {
+            embeds.push(h(MediaGrid, { items: items }));
+        }
+        else {
+            // can this be done with CSS?
+            let { width, height } = media[0].original_info;
+            let columnWidth = 506;
+            let maxHeight = 510;
+            let aspect = width / height;
+            if (aspect < 0.75)
+                aspect = 0.75;
+            if (aspect > 5)
+                aspect = 5;
+            let fitHeight = columnWidth / aspect;
+            let fitWidth = maxHeight * aspect;
+            if (fitHeight > maxHeight) {
+                width = fitWidth;
+                height = maxHeight;
+            }
+            else {
+                width = columnWidth;
+                height = fitHeight;
+            }
+            embeds.push(h("div", null,
+                h("div", { class: "t20230624-embed-rounded-corners", style: `display: flex; width: ${width}px; height: ${height}px;` }, items[0])));
+        }
     }
     if (t.quoted_status)
         embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user }));

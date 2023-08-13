@@ -285,7 +285,7 @@ let prepareEntities = (entities, kind, text) => {
 	return entities.map((e) => ({
 		...e,
 		kind: kind,
-		indices: translateRange(text, e.indices[0], e.indices[1])
+		indices: translateRange(text, +e.indices[0], +e.indices[1])
 	}));
 };
 let partsForTweetEntities = (text: string, entities: Entities) => {

@@ -243,6 +243,10 @@ def media(path):
 def client_js(name):
 	return static_file(name+'.js', root='static')
 
+@route('/favicon.ico')
+def favicon():
+	return static_file('favicon.ico', root='static')
+
 @route('/')
 @route('/everyone')
 @route('/thread/<twid:int>')

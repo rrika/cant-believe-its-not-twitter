@@ -443,18 +443,17 @@ let Header = (props) => h("div", { class: "t20230628-timeline-header" },
                     h("g", null,
                         h("path", { d: "M7.414 13l5.043 5.04-1.414 1.42L3.586 12l7.457-7.46 1.414 1.42L7.414 11H21v2H7.414z" })))))));
 let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-let HistogramSidebar = (props) => {
-    return h("div", { class: "sidebar-container" },
-        h("div", { class: "t20160910-sidebar-nav" },
-            props.histogram.map((row) => h("div", { class: "t20160910-histogram" + (row[0] == props.year || props.year === undefined ? " t20160910-active" : "") },
-                h("h3", null, row[0]),
-                h("ol", { class: "t20160910-months t20160910-unstyled" }, row[1].map((count, month) => count
-                    ? h("li", null,
-                        h("a", { href: "#", class: "t20160910-with-tweets" + (row[0] == props.year && month + 1 == props.month && props.year !== undefined ? " t20160910-active" : ""), onClick: (ev) => props.selectMonth(row[0], month + 1), title: `${monthNames[month]} ${row[0]}: ${count} Tweets` },
-                            h("span", { class: "t20160910-bar", style: `height: ${100 * count / props.max_tweets}%;` })))
-                    : h("li", { class: "t20160910-without-tweets", title: "" }))))),
-            props.year !== undefined ? h("a", { href: "#" }, "Reset selection") : []));
-};
+let Histogram = (props) => h(Fragment, null,
+    props.histogram.map((row) => h("div", { class: "t20160910-histogram" + (row[0] == props.year || props.year === undefined ? " t20160910-active" : "") },
+        h("h3", null, row[0]),
+        h("ol", { class: "t20160910-months t20160910-unstyled" }, row[1].map((count, month) => count
+            ? h("li", null,
+                h("a", { href: "#", class: "t20160910-with-tweets" + (row[0] == props.year && month + 1 == props.month && props.year !== undefined ? " t20160910-active" : ""), onClick: (ev) => props.selectMonth(row[0], month + 1), title: `${monthNames[month]} ${row[0]}: ${count} Tweets` },
+                    h("span", { class: "t20160910-bar", style: `height: ${100 * count / props.max_tweets}%;` })))
+            : h("li", { class: "t20160910-without-tweets", title: "" }))))),
+    props.year !== undefined ? h("a", { href: "#" }, "Reset selection") : []);
+let Sidebar = (props) => h("div", { class: "sidebar-container" },
+    h("div", { class: "t20160910-sidebar-nav" }, props.children));
 let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map((tab, index) => h("div", { class: "t20230630-navbutton" + (index == props.selected ? " navbar-selected" : ""), onClick: (e) => logic.navigate(tab.navigate_to) },
     h("div", { class: "t20230630-navbutton-text" }, tab.label))));
 class App extends Component {
@@ -493,13 +492,14 @@ class App extends Component {
         parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user }) : []));
         let timeline = h("div", { class: "common-frame-600 theme-dim" },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
-        let sidebar = h(HistogramSidebar
-        // year={2021}
-        // month={10}
-        , { 
+        let sidebar = h(Sidebar, null,
+            h(Histogram
             // year={2021}
             // month={10}
-            max_tweets: this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram !== undefined ? this.props.histogram.histogram : [], selectMonth: console.log });
+            , { 
+                // year={2021}
+                // month={10}
+                max_tweets: this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram !== undefined ? this.props.histogram.histogram : [], selectMonth: console.log }));
         return [timeline, sidebar];
     }
 }

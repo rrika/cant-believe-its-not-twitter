@@ -1,4 +1,4 @@
-import { h, render, Component, Fragment, JSX, VNode } from 'preact';
+import { h, render, Component, ComponentChildren, Fragment, JSX, VNode } from 'preact';
 
 type Entities = {
 	hashtags: any[],
@@ -605,8 +605,8 @@ type HistogramProps = {
 
 let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-let HistogramSidebar = (props: HistogramProps) => {
-	return <div class="sidebar-container"><div class="t20160910-sidebar-nav">{props.histogram.map((row)=>
+let Histogram = (props: HistogramProps) => <>
+	{props.histogram.map((row)=>
 		<div class={"t20160910-histogram" + (row[0]==props.year || props.year===undefined ? " t20160910-active" : "")}>
 			<h3>{row[0]}</h3><ol class="t20160910-months t20160910-unstyled">{row[1].map((count, month)=> count
 				? <li><a href="#" class={"t20160910-with-tweets" + (row[0]==props.year && month+1==props.month && props.year !== undefined ? " t20160910-active" : "")}
@@ -618,8 +618,12 @@ let HistogramSidebar = (props: HistogramProps) => {
 		</div>
 	)}
 	{props.year !== undefined ? <a href="#">Reset selection</a> : []}
-	</div></div>
-};
+</>;
+
+let Sidebar = (props: {children: ComponentChildren}) =>
+	<div class="sidebar-container"><div class="t20160910-sidebar-nav">
+		{props.children}
+	</div></div>;
 
 type Tab = {
 	label: string,
@@ -679,12 +683,14 @@ class App extends Component<AppProps> {
 				{parts}
 			</div>
 		</div>;
-		let sidebar = <HistogramSidebar
-			// year={2021}
-			// month={10}
-			max_tweets={this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0}
-			histogram={this.props.histogram !== undefined ? this.props.histogram.histogram : []}
-			selectMonth={console.log}/>;
+		let sidebar = <Sidebar>
+			<Histogram
+				// year={2021}
+				// month={10}
+				max_tweets={this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0}
+				histogram={this.props.histogram !== undefined ? this.props.histogram.histogram : []}
+				selectMonth={console.log}/>
+		</Sidebar>;
 		return [timeline, sidebar];
 	}
 }

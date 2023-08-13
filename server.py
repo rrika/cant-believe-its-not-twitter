@@ -110,8 +110,11 @@ def paginated_tweets(response):
 	histogram = {}
 	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 	for tweet in tweets:
-		if tweet and "created_at" in tweet:
-			date = datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
+		if tweet:
+			if "created_at" in tweet:
+				date = datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
+			else:
+				date = datetime.datetime.fromtimestamp(((int(tweet["id_str"])>>22) + 1288834974657) / 1000.0)
 			histogram.setdefault(date.year, zeroes[:])[date.month-1] += 1
 	if not histogram:
 		return response

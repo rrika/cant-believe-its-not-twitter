@@ -214,7 +214,7 @@ let MediaGrid = (props: {items: VNode<any>[]}) => {
 let TweetImage = (props: {src: string}) =>
 	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}}></div>; /*todo: proper escape*/
 
-let dateFormat = (datestr: string) => {
+let dateFormat = (datestr: string | number) => {
 	let now = new Date();
 	let date = new Date(datestr);
 	let deltaSec = (now.getTime() - date.getTime()) / 1000;
@@ -404,7 +404,7 @@ let AnonymousTweet = (props: {t: TweetInfo}) => {
 					<span class="t20230403-user-line-displayname">Unknown</span>
 					<span class="t20230403-user-line-handle" tabIndex={-1}>@unknown</span>
 					<span class="t20230403-user-line-punctuation">·</span>
-					<a class="t20230403-user-line-time" href={`https://twitter.com/i/web/status/${props.t.id_str}`}>somewhen</a>
+					<a class="t20230403-user-line-time" href={`https://twitter.com/i/web/status/${props.t.id_str}`}>{dateFormat(parseInt((BigInt(props.t.id_str) >> BigInt(22)).toString()) + 1288834974657)}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>

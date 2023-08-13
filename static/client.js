@@ -287,7 +287,7 @@ let AnonymousTweet = (props) => {
                     h("span", { class: "t20230403-user-line-displayname" }, "Unknown"),
                     h("span", { class: "t20230403-user-line-handle", tabIndex: -1 }, "@unknown"),
                     h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/i/web/status/${props.t.id_str}` }, "somewhen"),
+                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/i/web/status/${props.t.id_str}` }, dateFormat(parseInt((BigInt(props.t.id_str) >> BigInt(22)).toString()) + 1288834974657)),
                     h("span", { class: "t20230403-user-line-menu" })),
                 h("div", { class: "t20230403-contents" },
                     h(TweetText, { tweet: props.t })))));

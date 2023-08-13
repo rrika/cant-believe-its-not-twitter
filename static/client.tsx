@@ -24,12 +24,24 @@ type LegacyProfile = {
 	observer?: boolean
 };
 
+type SizeInfo = {
+	w: number,
+	h: number,
+	resize: "fit"|"crop"
+}
+
 type MediaEntity = {
 	indices: [string, string],
-	original_info: {
+	original_info?: { // doesn't exist in archives for example
 		width: number,
 		height: number
 	},
+	sizes: {
+		large: SizeInfo,
+		medium: SizeInfo,
+		small: SizeInfo,
+		thumb: SizeInfo
+	}
 	media_url_https: string
 };
 
@@ -448,7 +460,14 @@ let Tweet = (props: TweetProps) => {
 			embeds.push(<MediaGrid items={items}/>);
 		} else {
 			// can this be done with CSS?
-			let {width, height} = media[0].original_info;
+			let width, height, m0 = media[0];
+			if (m0.original_info !== undefined) {
+				width = m0.original_info.width;
+				height = m0.original_info.height;
+			} else {
+				width = m0.sizes.large.w;
+				height = m0.sizes.large.h;
+			}
 			let columnWidth = 506;
 			let maxHeight = 510;
 			let aspect = width / height;

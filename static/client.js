@@ -322,7 +322,15 @@ let Tweet = (props) => {
         }
         else {
             // can this be done with CSS?
-            let { width, height } = media[0].original_info;
+            let width, height, m0 = media[0];
+            if (m0.original_info !== undefined) {
+                width = m0.original_info.width;
+                height = m0.original_info.height;
+            }
+            else {
+                width = m0.sizes.large.w;
+                height = m0.sizes.large.h;
+            }
             let columnWidth = 506;
             let maxHeight = 510;
             let aspect = width / height;

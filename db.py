@@ -116,6 +116,25 @@ class DB:
 		# likes in reverse chronological order
 		for uid, likes_snapshots in self.likes_snapshots.items():
 			l = seqalign.align(sorted(likes_snapshots, key=lambda snap: -snap.time))
+
+			# 
+			have_twid = set()
+			for sort_index, twid in l:
+				tweet = self.tweets.get(twid, {})
+				original_id = tweet.get("original_id", twid)
+				have_twid.add(original_id)
+
+			for twid in self.likes_unsorted.get(uid, []):
+				tweet = self.tweets[twid]
+				twid = tweet["original_id"]
+				if tweet["original_id"] in have_twid:
+					continue
+				have_twid.add(twid)
+				timestamp = (twid >> 22) + 1288834974657
+				synthesized_like_id = timestamp << 20
+				l.append((synthesized_like_id, twid))
+
+			l.sort(key=lambda a: -a[0])
 			l = [twid for sort_index, twid in l]
 			self.likes_sorted[uid] = l
 

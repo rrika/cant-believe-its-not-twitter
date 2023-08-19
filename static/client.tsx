@@ -1,4 +1,4 @@
-import { h, render, Component, ComponentChildren, Fragment, JSX, VNode } from 'preact';
+import { h, createRef, render, Component, ComponentChildren, Fragment, JSX, VNode } from 'preact';
 
 type Entities = {
 	hashtags: any[],
@@ -182,7 +182,8 @@ class Logic {
 
 type TweetProps = {
 	t: TweetInfo,
-	u: LegacyProfile
+	u: LegacyProfile,
+	showMediaViewer: (urls: string[]) => void
 }
 
 type ProfileProps = {
@@ -239,8 +240,8 @@ let MediaGrid = (props: {items: VNode<any>[]}) => {
 	</div>
 };
 
-let TweetImage = (props: {src: string}) =>
-	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}}></div>; /*todo: proper escape*/
+let TweetImage = (props: {src: string, onClick?: JSX.MouseEventHandler<HTMLElement>}) =>
+	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}} onClick={props.onClick}></div>; /*todo: proper escape*/
 
 let dateFormat = (datestr: string | number) => {
 	let now = new Date();
@@ -470,7 +471,12 @@ let Tweet = (props: TweetProps) => {
 	let embeds = [];
 	if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
 		let media = props.t.entities.media;
-		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https}/>);
+		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https} onClick={
+			(e: JSX.TargetedMouseEvent<HTMLElement>) => {
+				e.preventDefault();
+				props.showMediaViewer([media.media_url_https]);
+			}
+		}/>);
 		if (items.length != 1) {
 			embeds.push(<MediaGrid items={items}/>);
 		} else {
@@ -505,7 +511,7 @@ let Tweet = (props: TweetProps) => {
 		}
 	}
 	if (t.quoted_status)
-		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user}/>);
+		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer}/>);
 
 	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0} onClick={selectTweet}>
 		{t.context_icon ?
@@ -713,9 +719,32 @@ let NavBar = (props: NavBarProps) =>
 		)}
 	</div>;
 
+type MediaViewerProps = {
+	urls: string[]
+}
+
 type AppState = {
+	mediaViewer?: MediaViewerProps,
 	theme: string
 };
+
+class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}> {
+	ref = createRef();
+	componentDidMount() {
+		this.ref.current.focus();
+		window.addEventListener("keydown", this);
+	}
+	componentWillUnmount() {
+		window.removeEventListener("keydown", this);
+	}
+	handleEvent(ev) { // magic function name that will be looked up on the event listener
+		if(ev.key === "Escape")
+			this.props.onEscape();
+	}
+	render() {
+		return <div class="modal-overlay" tabIndex={0} ref={this.ref}>{this.props.children}</div>;
+	}
+}
 
 class App extends Component<AppProps, AppState> {
 	constructor() {
@@ -751,8 +780,15 @@ class App extends Component<AppProps, AppState> {
 		} else {
 			parts.push(<Header/>);
 		}
+		let showMediaViewer = (urls: string[]) => {
+			this.setState({mediaViewer: {urls: urls}});
+		};
+		let hideMediaViewer = () => {
+			this.setState({mediaViewer: undefined});
+		};
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
-		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet key={tweet.id_str} t={tweet} u={tweet.user}/> : []));
+		parts.push(...(this.props.tweets || []).map(tweet => tweet ?
+			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} showMediaViewer={showMediaViewer}/> : []));
 		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}
@@ -779,7 +815,11 @@ class App extends Component<AppProps, AppState> {
 				histogram={this.props.histogram !== undefined ? this.props.histogram.histogram : []}
 				selectMonth={console.log}/>
 		</Sidebar>;
-		return [timeline, sidebar];
+		if (this.state.mediaViewer) {
+			let mediaViewer = <Modal onEscape={hideMediaViewer}><div class="media-viewer"><img src={this.state.mediaViewer.urls[0]}/></div></Modal>;
+			return [timeline, sidebar, mediaViewer];
+		} else
+			return [timeline, sidebar];
 	}
 }
 
@@ -790,4 +830,4 @@ window.addEventListener("load", () => {
 	div = document.getElementById("root");
 	render(<App tweets={[]} tab={0}/>, div);
 	logic.navigateReal(window.location.pathname.slice(1));
-});
+}, {once: true});

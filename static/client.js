@@ -1,4 +1,4 @@
-import { h, render, Component, Fragment } from 'preact';
+import { h, createRef, render, Component, Fragment } from 'preact';
 class Logic {
     constructor(updateFn) {
         this.updateFn = updateFn;
@@ -121,7 +121,7 @@ let MediaGrid = (props) => {
                                     h("div", { class: "t20230701-media-vdiv" }, [items[0], items[1]]),
                                     h("div", { class: "t20230701-media-vdiv" }, [items[2], items[3]]))));
 };
-let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` } }); /*todo: proper escape*/
+let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick }); /*todo: proper escape*/
 let dateFormat = (datestr) => {
     let now = new Date();
     let date = new Date(datestr);
@@ -326,7 +326,10 @@ let Tweet = (props) => {
     let embeds = [];
     if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
         let media = props.t.entities.media;
-        let items = media.map((media) => h(TweetImage, { src: media.media_url_https }));
+        let items = media.map((media) => h(TweetImage, { src: media.media_url_https, onClick: (e) => {
+                e.preventDefault();
+                props.showMediaViewer([media.media_url_https]);
+            } }));
         if (items.length != 1) {
             embeds.push(h(MediaGrid, { items: items }));
         }
@@ -368,7 +371,7 @@ let Tweet = (props) => {
         }
     }
     if (t.quoted_status)
-        embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user }));
+        embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer }));
     return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0, onClick: selectTweet },
         t.context_icon ?
             h("div", { class: "t20230403-tweet-split t20230705-tweet-context" },
@@ -506,6 +509,26 @@ let Sidebar = (props) => h("div", { class: "sidebar-container" },
     h("div", { class: "t20160910-sidebar-nav" }, props.children));
 let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map((tab, index) => h("div", { class: "t20230630-navbutton" + (index == props.selected ? " navbar-selected" : ""), onClick: (e) => logic.navigate(tab.navigate_to) },
     h("div", { class: "t20230630-navbutton-text" }, tab.label))));
+class Modal extends Component {
+    constructor() {
+        super(...arguments);
+        this.ref = createRef();
+    }
+    componentDidMount() {
+        this.ref.current.focus();
+        window.addEventListener("keydown", this);
+    }
+    componentWillUnmount() {
+        window.removeEventListener("keydown", this);
+    }
+    handleEvent(ev) {
+        if (ev.key === "Escape")
+            this.props.onEscape();
+    }
+    render() {
+        return h("div", { class: "modal-overlay", tabIndex: 0, ref: this.ref }, this.props.children);
+    }
+}
 class App extends Component {
     constructor() {
         super();
@@ -542,8 +565,15 @@ class App extends Component {
         else {
             parts.push(h(Header, null));
         }
+        let showMediaViewer = (urls) => {
+            this.setState({ mediaViewer: { urls: urls } });
+        };
+        let hideMediaViewer = () => {
+            this.setState({ mediaViewer: undefined });
+        };
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
-        parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user }) : []));
+        parts.push(...(this.props.tweets || []).map(tweet => tweet ?
+            h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user, showMediaViewer: showMediaViewer }) : []));
         let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
         let setTheme = (theme) => (ev) => {
@@ -567,7 +597,14 @@ class App extends Component {
                 // year={2021}
                 // month={10}
                 max_tweets: this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram !== undefined ? this.props.histogram.histogram : [], selectMonth: console.log }));
-        return [timeline, sidebar];
+        if (this.state.mediaViewer) {
+            let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
+                h("div", { class: "media-viewer" },
+                    h("img", { src: this.state.mediaViewer.urls[0] })));
+            return [timeline, sidebar, mediaViewer];
+        }
+        else
+            return [timeline, sidebar];
     }
 }
 let div = null;
@@ -577,4 +614,4 @@ window.addEventListener("load", () => {
     div = document.getElementById("root");
     render(h(App, { tweets: [], tab: 0 }), div);
     logic.navigateReal(window.location.pathname.slice(1));
-});
+}, { once: true });

@@ -162,6 +162,10 @@ class Logic {
 			api_call = `followers/${m[1]}`;
 			tab = 100;
 		}
+		else if ((m = i.match(/([^/]+)$/)) !== null) {
+			api_call = `profile2/${m[1]}`;
+			tab = 0;
+		}
 		else {
 			api_call = i; // fall-back
 		}

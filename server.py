@@ -106,6 +106,9 @@ class ClientAPI:
 ca = ClientAPI(db)
 
 def paginated_tweets(response):
+	if "tweets" not in response:
+		# profile2 query can return either tweets or profiles
+		return response
 	tweets = response["tweets"]
 	histogram = {}
 	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -135,6 +138,21 @@ def profile(uid):
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.profile_view(uid)
 	})
+
+@route('/api/profile2/<who>')
+def profile2(who):
+	try: uid = int(who)
+	except: pass
+	else: return profile(uid)
+
+	uids = db.user_by_handle.get(who, set())
+	if len(uids) == 1:
+		uid, = uids
+		return profile(uid)
+	else:
+		return paginated_tweets({
+			"profiles": [ca.get_profile(uid) for uid in uids]
+		})
 
 @route('/api/replies/<uid:int>')
 def replies(uid):
@@ -251,6 +269,7 @@ def favicon():
 	return static_file('favicon.ico', root='static')
 
 @route('/')
+@route('/<who>')
 @route('/everyone')
 @route('/thread/<twid:int>')
 @route('/profile/<who>')

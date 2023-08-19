@@ -93,6 +93,7 @@ class DB:
 		self.followers = {} # could be part of .profiles
 		self.followings = {} # could be part of .profiles
 		self.by_user = {}
+		self.user_by_handle = {}
 		self.media = MediaStore()
 		self.har = HarStore("harstore")
 		self.likes_snapshots = {}
@@ -417,6 +418,8 @@ class DB:
 		#print("added @{}".format(user["screen_name"]))
 		dbuser = self.profiles.setdefault(uid, {})
 		dbuser.update(user)
+
+		self.user_by_handle.setdefault(user["screen_name"], set()).add(uid)
 
 		if self.uid is not None and user.get("followed_by", False):
 			self.add_follow(uid, self.uid)

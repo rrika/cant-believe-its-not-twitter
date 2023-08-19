@@ -137,56 +137,56 @@ def profile(uid):
 	})
 
 @route('/api/replies/<uid:int>')
-def profile(uid):
+def replies(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.with_replies_view(uid)
 	})
 
 @route('/api/media/<uid:int>')
-def profile(uid):
+def media(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.media_view(uid)
 	})
 
 @route('/api/likes/<uid:int>')
-def profile(uid):
+def likes(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.likes_view(uid)
 	})
 
 @route('/api/bookmarks/<uid:int>')
-def profile(uid):
+def bookmarks(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.bookmarks_view(uid)
 	})
 
 @route('/api/interactions/<uid:int>')
-def profile(uid):
+def interactions(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.interactions_view(uid)
 	})
 
 @route('/api/followers/<uid:int>')
-def thread(uid):
+def followers(uid):
 	return {
 		"topProfile": ca.get_profile(uid),
 		"profiles": ca.followers(uid)[:300]
 	}
 
 @route('/api/following/<uid:int>')
-def thread(uid):
+def following(uid):
 	return {
 		"topProfile": ca.get_profile(uid),
 		"profiles": ca.following(uid)[:300]
 	}
 
 @route('/api/everyone')
-def thread():
+def everyone():
 	return {"profiles": ca.everyone()}
 
 @route('/fonts/<path:path>')

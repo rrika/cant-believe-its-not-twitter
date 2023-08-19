@@ -594,7 +594,7 @@ let pluralize = (n: number, counter: string) => n == 1 ? counter : counter + "s"
 let Profile2 = (p: LegacyProfile) =>
 	<div class="t20230627-profile">
 		<a class="t20230627-profile-banner">
-			<img src={p.profile_banner_url} draggable={true}/>
+			{p.profile_banner_url ? <img src={p.profile_banner_url} draggable={true}/> : []}
 		</a>
 		<div class="t20230627-profile-info">
 			<div class="t20230627-profile-picture-and-actions">

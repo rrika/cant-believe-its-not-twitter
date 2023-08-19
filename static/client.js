@@ -438,8 +438,7 @@ let ProfileItem = (props) => {
 };
 let pluralize = (n, counter) => n == 1 ? counter : counter + "s";
 let Profile2 = (p) => h("div", { class: "t20230627-profile" },
-    h("a", { class: "t20230627-profile-banner" },
-        h("img", { src: p.profile_banner_url, draggable: true })),
+    h("a", { class: "t20230627-profile-banner" }, p.profile_banner_url ? h("img", { src: p.profile_banner_url, draggable: true }) : []),
     h("div", { class: "t20230627-profile-info" },
         h("div", { class: "t20230627-profile-picture-and-actions" },
             h("div", { class: "t20230627-profile-picture" },

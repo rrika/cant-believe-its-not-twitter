@@ -333,6 +333,11 @@ let Tweet = (props) => {
                 width = m0.original_info.width;
                 height = m0.original_info.height;
             }
+            else if (Array.isArray(m0.sizes)) {
+                let last = m0.sizes[m0.sizes.length - 1];
+                width = last.w;
+                height = last.h;
+            }
             else {
                 width = m0.sizes.large.w;
                 height = m0.sizes.large.h;
@@ -433,8 +438,9 @@ let ProfileItem = (props) => {
                         "@",
                         p.screen_name),
                     p.followed_by ? h("span", { class: "t20230627-profile-badge" }, "Follows you") : [])),
-            h("div", { class: "t20230627-profile-li-bio t20230403-contents" },
-                h(TextWithEntities, { full_text: p.description, entities: p.entities && p.entities.description, display_text_range: [0, p.description.length] }))));
+            h("div", { class: "t20230627-profile-li-bio t20230403-contents" }, p.description
+                ? h(TextWithEntities, { full_text: p.description, entities: p.entities && p.entities.description, display_text_range: [0, p.description.length] })
+                : "[missing]")));
 };
 let pluralize = (n, counter) => n == 1 ? counter : counter + "s";
 let Profile2 = (p) => h("div", { class: "t20230627-profile" },
@@ -459,8 +465,9 @@ let Profile2 = (p) => h("div", { class: "t20230627-profile" },
                         "@",
                         p.screen_name),
                     p.followed_by ? h("span", { class: "t20230627-profile-badge" }, "Follows you") : []))),
-        h("div", { class: "t20230627-profile-description" },
-            h(TextWithEntities, { full_text: p.description, entities: p.entities && p.entities.description, display_text_range: [0, p.description.length] })),
+        h("div", { class: "t20230627-profile-description" }, p.description
+            ? h(TextWithEntities, { full_text: p.description, entities: p.entities && p.entities.description, display_text_range: [0, p.description.length] })
+            : "[missing]"),
         h("div", { class: "t20230627-profile-attributes" }),
         h("div", { class: "t20230627-profile-numbers" }, [
             h("a", { href: `/profile/${p.user_id_str}/following` },

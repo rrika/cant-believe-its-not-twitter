@@ -209,7 +209,7 @@ class DB:
 	def load_with_prefix(self, base, fname, expected_prefix):
 		with open(os.path.join(base, fname)) as f:
 			prefix = f.read(len(expected_prefix))
-			assert prefix == expected_prefix
+			assert prefix == expected_prefix, (prefix, expected_prefix)
 			return json.load(f)
 
 	def load(self, base):
@@ -227,7 +227,7 @@ class DB:
 
 		elif os.path.exists(os.path.join(base, "data", "js", "tweet_index.js")):
 			# browsable archives from ~2019
-			print("unsupported archive format:", base)
+			self.load_2019(base)
 			return
 
 		elif os.path.exists(os.path.join(base, "tweet.js")):
@@ -309,6 +309,63 @@ class DB:
 		if tweets_media:
 			self.media.add_from_archive(tweets_media)
 
+	def load_2019(self, base):
+		payload_details = self.load_with_prefix(base, "data/js/payload_details.js", "var payload_details = ")
+		# ignore payload_details["tweets"]
+		# ignore payload_details["lang"]
+		if "created_at" in payload_details:
+			generation_date = payload_details["created_at"] # 2019-04-30 23:59:59 +0000
+			generation_date = datetime.datetime.strptime(generation_date, "%Y-%m-%d %H:%M:%S %z")
+			self.time = generation_date.timestamp() * 1000
+		else:
+			self.time = os.path.getmtime(base) * 1000
+
+		user_details = self.load_with_prefix(base, "data/js/user_details.js", "var user_details = ")
+		# ignore user_details["location"]
+		# ignore user_details["created_at"]
+		uid = user_details["id"]
+		self.uid = int(uid)
+		user = {
+			"screen_name": user_details["screen_name"],
+			"name": user_details["full_name"],
+			"description": user_details["bio"],
+			"user_id_str": uid
+		}
+		self.observers.add(int(uid))
+		self.add_legacy_user(user, uid)
+
+		tweet_index = self.load_with_prefix(base, "data/js/tweet_index.js", "var tweet_index = ")
+		known_keys = {
+			"source", "entities", "geo", "id_str", "text", "id", "created_at", "user",
+			"in_reply_to_screen_name",
+			"in_reply_to_status_id",
+			"in_reply_to_status_id_str",
+			"in_reply_to_user_id",
+			"in_reply_to_user_id_str"
+		}
+		for chunk in tweet_index:
+			# ignore chunk["year"]
+			# ignore chunk["month"]
+			# ignore chunk["tweet_count"]
+			fname = chunk["file_name"]
+			varname = "Grailbird.data.{} = ".format(chunk["var_name"])
+			tweets = self.load_with_prefix(base, fname, varname)
+			for tweet in tweets:
+				retweeted_status = tweet.pop("retweeted_status", None)
+				unknown_keys = set(tweet.keys()) - known_keys
+				assert not unknown_keys, unknown_keys
+
+				if retweeted_status:
+					rtid = int(retweeted_status["id_str"])
+					retweeted_status["original_id"] = rtid
+					self.add_legacy_tweet_2019(retweeted_status)
+					tweet["original_id"] = rtid
+					self.add_legacy_tweet_2019(tweet)
+				else:
+					tid = int(tweet["id_str"])
+					tweet["original_id"] = tid
+					self.add_legacy_tweet_2019(tweet)
+
 	# general loading
 
 	def add_legacy_tweet(self, tweet):
@@ -335,6 +392,23 @@ class DB:
 				if observer not in g: g.append(observer)
 		uid = int(tweet["user_id_str"])
 		self.by_user.setdefault(uid, []).append(twid)
+
+	def add_legacy_tweet_2019(self, tweet):
+		user = tweet.pop("user", None)
+		if user:
+			self.add_legacy_user(user, user["id_str"])
+			tweet["user_id_str"] = user["id_str"]
+
+		# rewrite date format
+		if "created_at" in tweet:
+			created_at = tweet["created_at"]
+			created_at = datetime.datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S %z")
+			created_at = created_at.strftime("%a %b %d %H:%M:%S %z %Y")
+			tweet["created_at"] = created_at
+
+		tweet["full_text"] = tweet.pop("text")
+
+		self.add_legacy_tweet(tweet)
 
 	def add_legacy_user(self, user, uid):
 		if user == {}: # in UsersVerifiedAvatars for example

@@ -9,7 +9,7 @@ type Entities = {
 };
 
 type LegacyProfile = {
-	description: string,
+	description?: string,
 	entities: {description: Entities},
 	name: string,
 	screen_name: string,
@@ -30,18 +30,21 @@ type SizeInfo = {
 	resize: "fit"|"crop"
 }
 
+type Sizes2019 = SizeInfo[];
+type Sizes2020 = {
+	large: SizeInfo,
+	medium: SizeInfo,
+	small: SizeInfo,
+	thumb: SizeInfo
+};
+
 type MediaEntity = {
 	indices: [string, string],
 	original_info?: { // doesn't exist in archives for example
 		width: number,
 		height: number
 	},
-	sizes: {
-		large: SizeInfo,
-		medium: SizeInfo,
-		small: SizeInfo,
-		thumb: SizeInfo
-	}
+	sizes: Sizes2019 | Sizes2020;
 	media_url_https: string
 };
 
@@ -472,6 +475,10 @@ let Tweet = (props: TweetProps) => {
 			if (m0.original_info !== undefined) {
 				width = m0.original_info.width;
 				height = m0.original_info.height;
+			} else if (Array.isArray(m0.sizes)) {
+				let last = m0.sizes[m0.sizes.length-1];
+				width = last.w;
+				height = last.h;
 			} else {
 				width = m0.sizes.large.w;
 				height = m0.sizes.large.h;
@@ -583,7 +590,9 @@ let ProfileItem = (props: ProfileProps) => {
 				</div>
 			</div>
 			<div class="t20230627-profile-li-bio t20230403-contents">
-				<TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
+				{p.description
+				? <TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
+				: "[missing]"}
 			</div>
 		</div>
 	</div>;
@@ -621,7 +630,9 @@ let Profile2 = (p: LegacyProfile) =>
 				</div>
 			</div>
 			<div class="t20230627-profile-description">
-				<TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
+				{p.description
+				? <TextWithEntities full_text={p.description} entities={p.entities && p.entities.description} display_text_range={[0, p.description.length]}/>
+				: "[missing]"}
 			</div>
 			<div class="t20230627-profile-attributes">
 			</div>

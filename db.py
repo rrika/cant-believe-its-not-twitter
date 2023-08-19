@@ -1,8 +1,8 @@
-import json, os, base64, os.path, re
+import json, os, base64, os.path, re, zipfile, mimetypes
 import datetime
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs
-from har import HarStore, OnDisk, InMemory
+from har import HarStore, OnDisk, InZip, InMemory
 
 class MediaStore:
 	def __init__(self):
@@ -11,9 +11,9 @@ class MediaStore:
 
 	# add images
 
-	def add_from_archive(self, tweet_media):
+	def add_from_archive(self, fs, tweet_media):
 		r = re.compile(r"(\d+)-([A-Za-z0-9_\-]+)\.(.*)")
-		for media_fname in os.listdir(tweet_media):
+		for media_fname in fs.listdir(tweet_media):
 			m = r.match(media_fname)
 			if not m:
 				print("what about", media_fname)
@@ -24,7 +24,12 @@ class MediaStore:
 			#size = "medium"
 			path = tweet_media+"/"+media_fname
 			#imageset.append((fmt, size, path))
-			imageset.append(OnDisk(path))
+			if isinstance(fs, ZipFS):
+				item = InZip(fs.zipf, path)
+				item.mime = mimetypes.guess_type(path)
+			else:
+				item = OnDisk(path)
+			imageset.append(item)
 
 	def add_http_snapshot(self, url, item):
 		urlparts = urlparse(url)
@@ -85,6 +90,31 @@ def urlmap_profile(urlmap, user):
 		if key in user:
 			user[key] = urlmap(user[key])
 	return user
+
+class NativeFS:
+	def exists(self, path): return os.path.exists(path)
+	def open(self, *args, **kwargs): return open(*args, **kwargs)
+	def getmtime(self, path): return os.path.getmtime(path)
+	def listdir(self, path): return os.listdir(path)
+
+class ZipFS:
+	def __init__(self, zipf):
+		self.zipf = zipf
+	def exists(self, path):
+		try: self.zipf.getinfo(path)
+		except KeyError: return False
+		return True
+	def open(self, *args, **kwargs):
+		return self.zipf.open(*args, **kwargs)
+	def getmtime(self, path):
+		# path is ignored
+		return os.path.getmtime(self.zipf.filename)
+	def listdir(self, path):
+		if not path.endswith("/"):
+			path += "/"
+		for name in self.zipf.namelist():
+			if name.startswith(path) and name != path:
+				yield name[len(path):]
 
 class DB:
 	def __init__(self):
@@ -207,43 +237,56 @@ class DB:
 
 	# twitter archives
 
-	def load_with_prefix(self, base, fname, expected_prefix):
-		with open(os.path.join(base, fname)) as f:
+	def load_with_prefix(self, fs, fname, expected_prefix):
+		with fs.open(os.path.join(fs.base, fname)) as f:
 			prefix = f.read(len(expected_prefix))
+			if isinstance(prefix, bytes): prefix = prefix.decode("utf-8")
 			assert prefix == expected_prefix, (prefix, expected_prefix)
 			return json.load(f)
 
 	def load(self, base):
-		if os.path.exists(os.path.join(base, "data", "tweets.js")):
+		if not isinstance(base, str):
+			fs = ZipFS(base)
+			base = ""
+		else:
+			fs = NativeFS()
+
+		if fs.exists(os.path.join(base, "data", "tweets.js")):
 			# browsable archives from ~2022
 			base = os.path.join(base, "data")
-			tweets = self.load_with_prefix(base, "tweets.js", "window.YTD.tweets.part0 = ")
+			fs.base = base
+			tweets = self.load_with_prefix(fs, "tweets.js", "window.YTD.tweets.part0 = ")
 			tweets_media = os.path.join(base, "tweets_media")
 
-		elif os.path.exists(os.path.join(base, "data", "tweet.js")):
+		elif fs.exists(os.path.join(base, "data", "tweet.js")):
 			# browsable archives from ~2020
 			base = os.path.join(base, "data")
-			tweets = self.load_with_prefix(base, "tweet.js", "window.YTD.tweet.part0 = ")
+			fs.base = base
+			tweets = self.load_with_prefix(fs, "tweet.js", "window.YTD.tweet.part0 = ")
 			tweets_media = os.path.join(base, "tweet_media")
 
-		elif os.path.exists(os.path.join(base, "data", "js", "tweet_index.js")):
+		elif fs.exists(os.path.join(base, "data", "js", "tweet_index.js")):
 			# browsable archives from ~2019
-			self.load_2019(base)
+			fs.base = base
+			self.load_2019(fs)
 			return
 
-		elif os.path.exists(os.path.join(base, "tweet.js")):
+		elif fs.exists(os.path.join(base, "tweet.js")):
 			# raw archives from ~2018
-			tweets = self.load_with_prefix(base, "tweet.js", "window.YTD.tweet.part0 = ")
+			fs.base = base
+			tweets = self.load_with_prefix(fs, "tweet.js", "window.YTD.tweet.part0 = ")
 			tweets_media = os.path.join(base, "tweet_media")
 			tweets_media = None # the filenames don't allow any association back to their tweets
 
-		likes = self.load_with_prefix(base, "like.js", "window.YTD.like.part0 = ")
-		account = self.load_with_prefix(base, "account.js", "window.YTD.account.part0 = ")[0]["account"]
-		profile = self.load_with_prefix(base, "profile.js", "window.YTD.profile.part0 = ")[0]["profile"]
+
+
+		likes = self.load_with_prefix(fs, "like.js", "window.YTD.like.part0 = ")
+		account = self.load_with_prefix(fs, "account.js", "window.YTD.account.part0 = ")[0]["account"]
+		profile = self.load_with_prefix(fs, "profile.js", "window.YTD.profile.part0 = ")[0]["profile"]
 		uid = account["accountId"]
 
-		if os.path.exists(os.path.join(base, "manifest.js")):
-			manifest = self.load_with_prefix(base, "manifest.js", "window.__THAR_CONFIG = ")
+		if fs.exists(os.path.join(base, "manifest.js")):
+			manifest = self.load_with_prefix(fs, "manifest.js", "window.__THAR_CONFIG = ")
 			generation_date = manifest["archiveInfo"]["generationDate"] # 2020-12-31T23:59:59.999Z
 			generation_date = datetime.datetime.fromisoformat(generation_date)
 			self.time = generation_date.timestamp() * 1000
@@ -308,10 +351,10 @@ class DB:
 		self.likes_snapshots.setdefault(self.uid, []).append(snapshot)
 
 		if tweets_media:
-			self.media.add_from_archive(tweets_media)
+			self.media.add_from_archive(fs, tweets_media)
 
-	def load_2019(self, base):
-		payload_details = self.load_with_prefix(base, "data/js/payload_details.js", "var payload_details = ")
+	def load_2019(self, fs):
+		payload_details = self.load_with_prefix(fs, "data/js/payload_details.js", "var payload_details = ")
 		# ignore payload_details["tweets"]
 		# ignore payload_details["lang"]
 		if "created_at" in payload_details:
@@ -319,9 +362,9 @@ class DB:
 			generation_date = datetime.datetime.strptime(generation_date, "%Y-%m-%d %H:%M:%S %z")
 			self.time = generation_date.timestamp() * 1000
 		else:
-			self.time = os.path.getmtime(base) * 1000
+			self.time = fs.getmtime(fs.base) * 1000
 
-		user_details = self.load_with_prefix(base, "data/js/user_details.js", "var user_details = ")
+		user_details = self.load_with_prefix(fs, "data/js/user_details.js", "var user_details = ")
 		# ignore user_details["location"]
 		# ignore user_details["created_at"]
 		uid = user_details["id"]
@@ -335,7 +378,7 @@ class DB:
 		self.observers.add(int(uid))
 		self.add_legacy_user(user, uid)
 
-		tweet_index = self.load_with_prefix(base, "data/js/tweet_index.js", "var tweet_index = ")
+		tweet_index = self.load_with_prefix(fs, "data/js/tweet_index.js", "var tweet_index = ")
 		known_keys = {
 			"source", "entities", "geo", "id_str", "text", "id", "created_at", "user",
 			"in_reply_to_screen_name",
@@ -350,7 +393,7 @@ class DB:
 			# ignore chunk["tweet_count"]
 			fname = chunk["file_name"]
 			varname = "Grailbird.data.{} = ".format(chunk["var_name"])
-			tweets = self.load_with_prefix(base, fname, varname)
+			tweets = self.load_with_prefix(fs, fname, varname)
 			for tweet in tweets:
 				retweeted_status = tweet.pop("retweeted_status", None)
 				unknown_keys = set(tweet.keys()) - known_keys
@@ -796,7 +839,15 @@ finally:
 for l in archive_paths:
 	if l and not l.startswith("#"):
 		print(l)
-		db.load(l)
+		if l.endswith(".zip"):
+			db.load(zipfile.ZipFile(l))
+		else:
+			db.load(l)
+
+for fname in os.listdir("."):
+	if fname.endswith(".zip"):
+		print(fname)
+		db.load(zipfile.ZipFile(fname))
 
 # archive data is broken for RTs so apply HAR later to overwrite that
 for fname in os.listdir("."):

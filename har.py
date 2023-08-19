@@ -8,6 +8,14 @@ class OnDisk:
 	def open(self):
 		return open(self.path, self.mode)
 
+class InZip:
+	def __init__(self, zipf, path):
+		self.zipf = zipf
+		self.path = path
+
+	def open(self):
+		return self.zipf.open(self.path)
+
 class InMemory:
 	def __init__(self, data):
 		self.data = data

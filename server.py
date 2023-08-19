@@ -1,4 +1,4 @@
-from db import db, urlmap_entities, urlmap_profile, OnDisk, InMemory
+from db import db, urlmap_entities, urlmap_profile, OnDisk, InZip, InMemory
 
 import os.path, time, datetime, sys
 sys.path.append(os.path.dirname(__file__) + "/vendor") # use bundled copy of bottle, if system has none
@@ -250,6 +250,9 @@ def media(path):
 		del request.environ["HTTP_IF_MODIFIED_SINCE"]
 	if isinstance(item, OnDisk):
 		response = static_file(os.path.basename(item.path), root=os.path.dirname(item.path), mimetype=getattr(item, "mime", "auto"))
+	elif isinstance(item, InZip):
+		with item.open() as f:
+			response = static_blob(f.read(), item.mime)
 	elif isinstance(item, InMemory):
 		# todo: caching headers, range queries?
 		response = static_blob(item.data, item.mime)

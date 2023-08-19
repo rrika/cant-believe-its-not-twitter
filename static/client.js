@@ -496,6 +496,10 @@ let Sidebar = (props) => h("div", { class: "sidebar-container" },
 let NavBar = (props) => h("div", { class: "t20230630-navbar" }, props.items.map((tab, index) => h("div", { class: "t20230630-navbutton" + (index == props.selected ? " navbar-selected" : ""), onClick: (e) => logic.navigate(tab.navigate_to) },
     h("div", { class: "t20230630-navbutton-text" }, tab.label))));
 class App extends Component {
+    constructor() {
+        super();
+        this.state = { theme: "dim" };
+    }
     render() {
         let top = this.props.topProfile;
         let parts = [];
@@ -529,9 +533,19 @@ class App extends Component {
         }
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
         parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user }) : []));
-        let timeline = h("div", { class: "common-frame-600 theme-dim" },
+        let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
+        let setTheme = (theme) => (ev) => this.setState({ theme });
+        let themeLinks = [];
+        for (let theme of ["light", "dim"])
+            if (this.state.theme != theme) {
+                if (themeLinks.length > 0)
+                    themeLinks.push(" ");
+                themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
+            }
         let sidebar = h(Sidebar, null,
+            h("h3", null, "Theme"),
+            themeLinks,
             h(Histogram
             // year={2021}
             // month={10}

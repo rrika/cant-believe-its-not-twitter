@@ -698,7 +698,15 @@ let NavBar = (props: NavBarProps) =>
 		)}
 	</div>;
 
-class App extends Component<AppProps> {
+type AppState = {
+	theme: string
+};
+
+class App extends Component<AppProps, AppState> {
+	constructor() {
+		super();
+		this.state = {theme: "dim"};
+	}
 	render() {
 		let top = this.props.topProfile;
 		let parts = [];
@@ -730,12 +738,22 @@ class App extends Component<AppProps> {
 		}
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
 		parts.push(...(this.props.tweets || []).map(tweet => tweet ? <Tweet key={tweet.id_str} t={tweet} u={tweet.user}/> : []));
-		let timeline = <div class="common-frame-600 theme-dim">
+		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}
 			</div>
 		</div>;
+		let setTheme = (theme: string) => (ev) => this.setState({theme});
+		let themeLinks = [];
+		for (let theme of ["light", "dim"])
+			if (this.state.theme != theme) {
+				if (themeLinks.length > 0)
+					themeLinks.push(" ");
+				themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
+			}
 		let sidebar = <Sidebar>
+			<h3>Theme</h3>
+			{themeLinks}
 			<Histogram
 				// year={2021}
 				// month={10}

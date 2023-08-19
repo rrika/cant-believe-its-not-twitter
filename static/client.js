@@ -535,7 +535,10 @@ class App extends Component {
         parts.push(...(this.props.tweets || []).map(tweet => tweet ? h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user }) : []));
         let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
-        let setTheme = (theme) => (ev) => this.setState({ theme });
+        let setTheme = (theme) => (ev) => {
+            ev.preventDefault();
+            this.setState({ theme });
+        };
         let themeLinks = [];
         for (let theme of ["light", "dim"])
             if (this.state.theme != theme) {

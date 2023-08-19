@@ -743,7 +743,10 @@ class App extends Component<AppProps, AppState> {
 				{parts}
 			</div>
 		</div>;
-		let setTheme = (theme: string) => (ev) => this.setState({theme});
+		let setTheme = (theme: string) => (ev) => {
+			ev.preventDefault();
+			this.setState({theme});
+		};
 		let themeLinks = [];
 		for (let theme of ["light", "dim"])
 			if (this.state.theme != theme) {

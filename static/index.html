@@ -83,9 +83,14 @@
 			border-bottom: 0px;
 		}
 		.t20230628-timeline-header {
-			background-color: rgba(21, 32, 43, 0.75);
 			position: relative;
 			z-index: 2;
+		}
+		.theme-light .t20230628-timeline-header {
+			background-color: rgba(255, 255, 255, 0.85)
+		}
+		.theme-dim .t20230628-timeline-header {
+			background-color: rgba(21, 32, 43, 0.75);
 		}
 		.t20230628-timeline-header-home {
 			height: 53px;
@@ -115,10 +120,16 @@
 			align-items: center;
 		}
 		.t20230628-timeline-header-return-button {
-			color: rgb(247, 249, 249);
+			/* color: rgb(247, 249, 249); */
 			display: flex;
 			min-width: 56px;
 			min-height: 32px;
+		}
+		.theme-light .t20230628-timeline-header-return-button {
+			color: rgb(15, 20, 25);
+		}
+		.theme-dim .t20230628-timeline-header-return-button {
+			color: rgb(239, 243, 244);
 		}
 		.t20230628-timeline-header-button {
 			display: flex;
@@ -130,10 +141,16 @@
 			cursor: pointer;
 			border-radius: 9999px;
 		}
-		.t20230628-timeline-header-button:hover {
+		.theme-light .t20230628-timeline-header-button:hover {
+			background-color: rgba(15, 20, 25, 0.1);
+		}
+		.theme-light .t20230628-timeline-header-button:active {
+			background-color: rgba(15, 20, 25, 0.2);
+		}
+		.theme-dim .t20230628-timeline-header-button:hover {
 			background-color: rgba(239, 243, 244, 0.1);
 		}
-		.t20230628-timeline-header-button:active {
+		.theme-dim .t20230628-timeline-header-button:active {
 			background-color: rgba(239, 243, 244, 0.2);
 		}
 		.t20230628-timeline-header-button svg {
@@ -278,16 +295,19 @@
 			padding-top: 4px;
 		}
 		.t20230627-padlock {
-			color: rgb(247, 249, 249);
 			width: 1.25em;
 			height: 1.25em;
 			fill: currentcolor;
 		}
+		.theme-light .t20230627-padlock {
+			color: rgb(15, 20, 25)
+		}
+		.theme-dim .t20230627-padlock {
+			color: rgb(247, 249, 249);
+		}
 		.t20230627-profile-badge {
 			line-height: 12px;
 			font-size: 11px;
-			color: rgb(139, 152, 165);
-			background-color: rgb(39, 51, 64);
 			margin-left: 4px;
 			font-weight: 500;
 			padding-left: 4px;
@@ -296,7 +316,14 @@
 			padding-top: 2px;
 			border-radius: 4px;
 		}
-
+		.theme-light .t20230627-profile-badge {
+			color: rgb(83, 100, 113);
+			background-color: rgb(239, 243, 244);
+		}
+		.theme-dim .t20230627-profile-badge {
+			color: rgb(139, 152, 165);
+			background-color: rgb(39, 51, 64);
+		}
 		.t20230403-user-line-displayname:hover {
 			text-decoration: underline;
 		}
@@ -605,6 +632,11 @@
 			border-radius: 99999px;
 			width: 100%;
 			height: 100%;
+		}
+		.theme-light .t20230627-profile-picture > .t20230627-profile-picture-outer-rim {
+			background-color: rgb(255, 255, 255);
+		}
+		.theme-dim .t20230627-profile-picture > .t20230627-profile-picture-outer-rim {
 			background-color: rgb(21, 32, 43);
 		}
 		.t20230627-profile-title {
@@ -648,7 +680,6 @@
 		.t20230627-profile-numbers > a {
 			margin-right: 20px;
 			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-			color: rgb(247, 249, 249);
 			text-decoration: none;
 			line-height: 20px; /* this affects the size of the space in the middle of "146 Following" */
 		}
@@ -660,10 +691,21 @@
 			font-size: 14px;
 			line-height: 16px;
 		}
+		.theme-light .t20230627-profile-numbers > a > :nth-child(1) {
+			color: rgb(15, 20, 25);
+		}
+		.theme-dim .t20230627-profile-numbers > a > :nth-child(1) {
+			color: rgb(247, 249, 249);
+		}
 		.t20230627-profile-numbers > a > :nth-child(2) {
-			color: rgb(139, 152, 165);
 			font-size: 14px;
 			line-height: 16px;
+		}
+		.theme-light .t20230627-profile-numbers > a > :nth-child(2) {
+			color: rgb(83, 100, 113);
+		}
+		.theme-dim .t20230627-profile-numbers > a > :nth-child(2) {
+			color: rgb(139, 152, 165);
 		}
 		.t20230627-profile-context {
 
@@ -687,7 +729,10 @@
 			justify-content: center;
 			cursor: pointer;
 		}
-		.t20230630-navbutton:hover {
+		.theme-light .t20230630-navbutton:hover {
+			background-color: rgba(15, 20, 25, 0.1);
+		}
+		.theme-dim .t20230630-navbutton:hover {
 			background-color: rgba(247, 249, 249, 0.1);
 		}
 		.t20230630-navbutton-text {
@@ -702,10 +747,19 @@
 			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 			font-size: 15px;
 			line-height: 20px;
-			color: rgb(139, 152, 165);
 			font-weight: 500;
 		}
-		.navbar-selected > .t20230630-navbutton-text {
+		.theme-light .t20230630-navbutton-text {
+			color: rgb(83, 100, 113)
+		}
+		.theme-dim .t20230630-navbutton-text {
+			color: rgb(139, 152, 165);
+		}
+		.theme-light .navbar-selected > .t20230630-navbutton-text {
+			color: rgb(15, 20, 25);
+			font-weight: 700;
+		}
+		.theme-dim .navbar-selected > .t20230630-navbutton-text {
 			color: rgb(247, 249, 249);
 			font-weight: 700;
 		}

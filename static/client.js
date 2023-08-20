@@ -351,6 +351,11 @@ let Tweet = (props) => {
                 width = m0.original_info.width;
                 height = m0.original_info.height;
             }
+            else if (m0.sizes === undefined) {
+                // arbitrary values to get a specific aspect ratio
+                width = 100;
+                height = 75.0977;
+            }
             else if (Array.isArray(m0.sizes)) {
                 let last = m0.sizes[m0.sizes.length - 1];
                 width = last.w;

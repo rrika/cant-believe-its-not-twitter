@@ -349,8 +349,11 @@ class DB:
 				"original_id": twid
 			}
 			if twid in self.tweets:
-				continue
-			self.tweets[twid] = fake_tweet
+				if "full_text" in self.tweets[twid]:
+					continue
+				self.tweets[twid].update(fake_tweet)
+			else:
+				self.tweets[twid] = fake_tweet
 
 		snapshot = seqalign.Items(like_twids)
 		snapshot.time = self.time
@@ -423,6 +426,15 @@ class DB:
 		bookmarked = tweet.pop("bookmarked", False)
 		favorited = tweet.pop("favorited", False)
 		retweeted = tweet.pop("retweeted", False)
+		if "in_reply_to_status_id_str" in tweet:
+			reply_to_status = tweet["in_reply_to_status_id_str"]
+			reply_to_user = tweet["in_reply_to_user_id_str"]
+			reply_to_tweet = self.tweets.setdefault(int(reply_to_status), {"id_str": reply_to_status})
+			reply_to_tweet["user_id_str"] = reply_to_user
+			reply_to_tweet.setdefault("original_id", int(reply_to_status)) # UI generally doesn't let one reply to a RT
+			reply_to_screen_name = tweet.get("in_reply_to_screen_name", None)
+			if reply_to_screen_name:
+				self.profiles.setdefault(int(reply_to_user), {})["screen_name"] = reply_to_screen_name
 		if twid in self.tweets:
 			self.tweets[twid].update(tweet)
 			dbtweet = self.tweets[twid]
@@ -863,8 +875,7 @@ for fname in os.listdir("."):
 db.sort_profiles()
 
 # print how many tweets by who are in the archive
-z = [(len(v), db.profiles[k]["screen_name"], k) for k, v in db.by_user.items()]
+z = [(len(v), db.profiles[k]["screen_name"] if k in db.profiles else str(k), k) for k, v in db.by_user.items()]
 z.sort()
 for count, name, uid in z:
 	print("{:4d} {}".format(count, name))
-	p = db.profiles[uid]

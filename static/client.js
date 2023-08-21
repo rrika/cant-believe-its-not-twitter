@@ -577,7 +577,7 @@ class App extends Component {
             this.setState({ mediaViewer: undefined });
         };
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
-        parts.push(...(this.props.tweets || []).map(tweet => tweet ?
+        parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
             h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user, showMediaViewer: showMediaViewer }) : []));
         let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
@@ -601,7 +601,7 @@ class App extends Component {
             , { 
                 // year={2021}
                 // month={10}
-                max_tweets: this.props.histogram !== undefined ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram !== undefined ? this.props.histogram.histogram : [], selectMonth: console.log }));
+                max_tweets: this.props.histogram ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram ? this.props.histogram.histogram : [], selectMonth: console.log }));
         if (this.state.mediaViewer) {
             let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
                 h("div", { class: "media-viewer" },

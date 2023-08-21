@@ -139,6 +139,12 @@ class DB:
 		self.uid = None
 
 	def sort_profiles(self):
+		# collect by user
+		for twid, tweet in self.tweets.items():
+			uid = tweet.get("user_id_str", None)
+			if uid is not None:
+				self.by_user.setdefault(int(uid), []).append(twid)
+
 		# tweets in reverse chronological order
 		for tids in self.by_user.values():
 			tids[:] = set(tids)
@@ -435,7 +441,6 @@ class DB:
 				g = dbtweet.setdefault("retweeters", [])
 				if observer not in g: g.append(observer)
 		uid = int(tweet["user_id_str"])
-		self.by_user.setdefault(uid, []).append(twid)
 
 	def add_legacy_tweet_2019(self, tweet):
 		user = tweet.pop("user", None)

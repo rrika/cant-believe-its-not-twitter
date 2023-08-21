@@ -288,6 +288,8 @@ let TextWithEntities = (props) => {
     });
     return h(Fragment, null, vdom);
 };
+let tweetIdToEpoch = (id_str) => parseInt((BigInt(id_str) >> BigInt(22)).toString()) + 1288834974657;
+let likeIdToEpoch = (id_str) => parseInt((BigInt(id_str) >> BigInt(20)).toString());
 let AnonymousTweet = (props) => {
     return h("div", { class: "t20230403-tweet t20230403-tweet-unfocused", tabIndex: 0 },
         h("div", { class: "t20230403-tweet-split" },
@@ -297,7 +299,7 @@ let AnonymousTweet = (props) => {
                     h("span", { class: "t20230403-user-line-displayname" }, "Unknown"),
                     h("span", { class: "t20230403-user-line-handle", tabIndex: -1 }, "@unknown"),
                     h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/i/web/status/${props.t.id_str}` }, dateFormat(parseInt((BigInt(props.t.id_str) >> BigInt(22)).toString()) + 1288834974657)),
+                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/i/web/status/${props.t.id_str}` }, dateFormat(tweetIdToEpoch(props.t.id_str))),
                     h("span", { class: "t20230403-user-line-menu" })),
                 h("div", { class: "t20230403-contents" },
                     h(TweetText, { tweet: props.t })))));
@@ -397,7 +399,7 @@ let Tweet = (props) => {
                         "@",
                         props.u.screen_name),
                     h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(props.t.created_at)),
+                    h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))),
                     h("span", { class: "t20230403-user-line-menu" })),
                 h("div", { class: "t20230403-contents" },
                     h(TweetText, { tweet: props.t })),
@@ -414,7 +416,7 @@ let QuotedTweet = (props) => {
                     "@",
                     props.u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, dateFormat(props.t.created_at)))),
+                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))))),
         h("div", { class: "t20230630-qrt-bottom t20230403-contents" },
             h(TweetText, { tweet: props.t })));
 };

@@ -426,6 +426,9 @@ let TextWithEntities = (props: {
 	return <>{vdom}</>;
 };
 
+let tweetIdToEpoch = (id_str: string) => parseInt((BigInt(id_str) >> BigInt(22)).toString()) + 1288834974657;
+let likeIdToEpoch = (id_str: string) => parseInt((BigInt(id_str) >> BigInt(20)).toString());
+
 let AnonymousTweet = (props: {t: TweetInfo}) => {
 	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0}>
 		<div class="t20230403-tweet-split">
@@ -436,7 +439,7 @@ let AnonymousTweet = (props: {t: TweetInfo}) => {
 					<span class="t20230403-user-line-displayname">Unknown</span>
 					<span class="t20230403-user-line-handle" tabIndex={-1}>@unknown</span>
 					<span class="t20230403-user-line-punctuation">·</span>
-					<a class="t20230403-user-line-time" href={`https://twitter.com/i/web/status/${props.t.id_str}`}>{dateFormat(parseInt((BigInt(props.t.id_str) >> BigInt(22)).toString()) + 1288834974657)}</a>
+					<a class="t20230403-user-line-time" href={`https://twitter.com/i/web/status/${props.t.id_str}`}>{dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
@@ -540,7 +543,8 @@ let Tweet = (props: TweetProps) => {
 					<a class="t20230403-user-line-displayname" href={userPath} onClick={selectUser}>{props.u.name}</a>
 					<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
 					<span class="t20230403-user-line-punctuation">·</span>
-					<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{dateFormat(props.t.created_at)}</a>
+					<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{
+						props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
@@ -559,7 +563,8 @@ let QuotedTweet = (props: TweetProps) => {
 				<a class="t20230403-user-line-displayname" href={userPath}>{props.u.name}</a>
 				<a class="t20230403-user-line-handle" href={userPath} tabIndex={-1}>@{props.u.screen_name}</a>
 				<span class="t20230403-user-line-punctuation">·</span>
-				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`}>{dateFormat(props.t.created_at)}</a>
+				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`}>{
+					props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
 			</div>
 		</div>
 		<div class="t20230630-qrt-bottom t20230403-contents">

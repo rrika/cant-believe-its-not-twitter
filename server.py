@@ -105,30 +105,39 @@ class ClientAPI:
 
 ca = ClientAPI(db)
 
+def histogram_from_dates(dates):
+	histogram = {}
+	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	for date in dates:
+		histogram.setdefault(date.year, zeroes[:])[date.month-1] += 1
+	if not histogram:
+		return None
+	min_year = min(histogram.keys())
+	max_year = max(histogram.keys())
+	max_tweets = max(max(row) for row in histogram.values())
+	histogram = [(year, histogram.get(year, zeroes)) for year in range(max_year, min_year-1, -1)]
+	return {
+		"max_tweets": max_tweets,
+		"histogram": histogram
+	}
+
 def paginated_tweets(response):
 	if "tweets" not in response:
 		# profile2 query can return either tweets or profiles
 		return response
 	tweets = response["tweets"]
-	histogram = {}
-	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	dates = []
 	for tweet in tweets:
 		if tweet:
 			if "created_at" in tweet:
 				date = datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
 			else:
 				date = datetime.datetime.fromtimestamp(((int(tweet["id_str"])>>22) + 1288834974657) / 1000.0)
-			histogram.setdefault(date.year, zeroes[:])[date.month-1] += 1
+			dates.append(date)
+	histogram = histogram_from_dates(dates)
 	if not histogram:
 		return response
-	min_year = min(histogram.keys())
-	max_year = max(histogram.keys())
-	max_tweets = max(max(row) for row in histogram.values())
-	histogram = [(year, histogram.get(year, zeroes)) for year in range(max_year, min_year-1, -1)]
-	response["histogram"] = {
-		"max_tweets": max_tweets,
-		"histogram": histogram
-	}
+	response["histogram"] = histogram
 	response["tweets"] = response["tweets"][:200]
 	return response
 

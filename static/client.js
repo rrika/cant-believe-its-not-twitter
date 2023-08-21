@@ -424,18 +424,21 @@ let ProfileItem = (props) => {
     let p = props.p;
     let user_id_str = p.user_id_str;
     let selectUser = (e) => {
+        let selObj = window.getSelection();
+        if (selObj && !selObj.isCollapsed)
+            return; // user is probably trying to select the bio text, let them
         e.preventDefault();
         logic.navigate("profile/" + user_id_str);
     };
     let userPath = "/" + p.screen_name;
-    return h("div", { class: "t20230627-profile-li" },
+    return h("div", { class: "t20230627-profile-li", onClick: selectUser },
         h("div", { class: "t20230403-avatar-column" },
-            h("a", { href: userPath, onClick: selectUser },
+            h("a", { href: userPath },
                 h("div", { class: "t20230403-avatar-box" },
                     h("img", { alt: "", draggable: true, src: p.profile_image_url_https, class: "t20230403-avatar" })))),
         h("div", { class: "t20230403-main-column" },
             h("div", { class: "t20230627-profile-li-header" },
-                h("a", { href: userPath, onClick: selectUser, class: "t20230627-profile-li-header-1" },
+                h("a", { href: userPath, class: "t20230627-profile-li-header-1" },
                     h("div", { class: "t20230403-user-line-displayname" }, p.name),
                     p.protected
                         ? h("svg", { class: "t20230627-padlock", viewBox: "0 0 24 24", "aria-label": "Protected account", role: "img", "data-testid": "icon-lock" },

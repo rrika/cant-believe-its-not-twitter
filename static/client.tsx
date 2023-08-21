@@ -576,14 +576,17 @@ let QuotedTweet = (props: TweetProps) => {
 let ProfileItem = (props: ProfileProps) => {
 	let p = props.p;
 	let user_id_str = p.user_id_str;
-	let selectUser = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
+	let selectUser = (e: JSX.TargetedMouseEvent<HTMLElement>) => {
+		let selObj = window.getSelection();
+		if (selObj && !selObj.isCollapsed)
+			return; // user is probably trying to select the bio text, let them
 		e.preventDefault();
 		logic.navigate("profile/"+user_id_str);
 	};
 	let userPath = "/"+p.screen_name;
-	return <div class="t20230627-profile-li">
+	return <div class="t20230627-profile-li" onClick={selectUser}>
 		<div class="t20230403-avatar-column">
-			<a href={userPath} onClick={selectUser}>
+			<a href={userPath}>
 				<div class="t20230403-avatar-box">
 					<img alt="" draggable={true} src={p.profile_image_url_https} class="t20230403-avatar"/>
 				</div>
@@ -591,7 +594,7 @@ let ProfileItem = (props: ProfileProps) => {
 		</div>
 		<div class="t20230403-main-column">
 			<div class="t20230627-profile-li-header">
-				<a href={userPath} onClick={selectUser} class="t20230627-profile-li-header-1">
+				<a href={userPath} class="t20230627-profile-li-header-1">
 					<div class="t20230403-user-line-displayname">
 						{p.name}
 					</div>

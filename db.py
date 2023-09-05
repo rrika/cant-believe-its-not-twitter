@@ -116,6 +116,43 @@ class ZipFS:
 			if name.startswith(path) and name != path:
 				yield name[len(path):]
 
+def unscramble(likes):
+	class Node:
+		capacity = 10
+		def __init__(self, index, count):
+			self.index = index
+			self.count = count
+			self.children = []
+
+	n = len(likes)
+	new_likes = [None] * len(likes)
+
+	queue = []
+	for i in range(0, n, 25):
+		ntweets = min(n-i, 25)
+		child = Node(i, ntweets)
+		if queue:
+			parent = queue[0]
+			parent.children.append(child)
+			if len(parent.children) == parent.capacity:
+				queue.pop(0)
+		else:
+			root = child
+			root.capacity = 9 # whyever
+		queue.append(child)
+
+	i = 0
+	def visit(node):
+		nonlocal i
+		for j in range(node.count):
+			new_likes[node.index + j] = likes[i]
+			i += 1
+		for child in node.children:
+			visit(child)
+	visit(root)
+
+	return new_likes
+
 class DB:
 	def __init__(self):
 		self.tweets = {}
@@ -334,6 +371,8 @@ class DB:
 			self.add_legacy_tweet(tweet)
 
 		like_twids = []
+
+		likes = unscramble(likes)
 
 		for like in likes:
 			like = like["like"]

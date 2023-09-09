@@ -1,7 +1,8 @@
 from db import db, urlmap_entities, urlmap_profile, OnDisk, InZip, InMemory
 
 import os.path, time, datetime, sys
-sys.path.append(os.path.dirname(__file__) + "/vendor") # use bundled copy of bottle, if system has none
+server_path = os.path.dirname(__file__)
+sys.path.append(server_path + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
 
 use_twitter_cdn_for_images = False
@@ -218,18 +219,18 @@ def everyone():
 
 @route('/fonts/<path:path>')
 def resources_20230628(path):
-	return static_file(path, root='static/20230628/fonts')
+	return static_file(path, root=server_path+'/static/20230628/fonts')
 
 @route('/responsive-web/<path:path>')
 def resources_20230628(path):
-	return static_file(path, root='static/20230628/responsive-web')
+	return static_file(path, root=server_path+'/static/20230628/responsive-web')
 
 @route('/p/<path:path>')
 def preact_js(path):
-	r = static_file(path, root='node_modules/preact/')
+	r = static_file(path, root=server_path+'/node_modules/preact/')
 	if isinstance(r, HTTPError) and path == "dist/preact.mjs":
 		# fall back to bundled preact copy
-		r = static_file('preact.mjs', root='static')
+		r = static_file('preact.mjs', root=server_path+'/static')
 	return r
 
 startup_time = time.time()
@@ -274,11 +275,11 @@ def media(path):
 
 @route('/<name>.js')
 def client_js(name):
-	return static_file(name+'.js', root='static')
+	return static_file(name+'.js', root=server_path+'/static')
 
 @route('/favicon.ico')
 def favicon():
-	return static_file('favicon.ico', root='static')
+	return static_file('favicon.ico', root=server_path+'/static')
 
 @route('/')
 @route('/<who>')
@@ -293,6 +294,6 @@ def favicon():
 @route('/profile/<who>/followers')
 @route('/profile/<who>/following')
 def index(**args):
-	return static_file('index.html', root='static')
+	return static_file('index.html', root=server_path+'/static')
 
 run()

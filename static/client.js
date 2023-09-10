@@ -6,11 +6,13 @@ class Logic {
     back() {
         window.history.back();
     }
-    navigate(i) {
-        window.history.pushState(i, "", "/" + i);
-        this.navigateReal(i);
+    navigate(i, q) {
+        if (q === undefined)
+            q = "";
+        window.history.pushState(i + q, "", "/" + i + q);
+        this.navigateReal(i, q);
     }
-    navigateReal(i) {
+    navigateReal(i, q) {
         let api_call;
         let tab = 0;
         let m;
@@ -60,7 +62,7 @@ class Logic {
             api_call = i; // fall-back
         }
         let self = this;
-        fetch('/api/' + api_call).then((response) => response.json().then((data) => {
+        fetch('/api/' + api_call + q).then((response) => response.json().then((data) => {
             data["tab"] = tab;
             self.updateFn(data);
         }));
@@ -614,9 +616,9 @@ class App extends Component {
 }
 let div = null;
 let logic = new Logic((props) => render(h(App, props), div));
-window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1)));
+window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1), window.location.search));
 window.addEventListener("load", () => {
     div = document.getElementById("root");
     render(h(App, { tweets: [], tab: 0 }), div);
-    logic.navigateReal(window.location.pathname.slice(1));
+    logic.navigateReal(window.location.pathname.slice(1), window.location.search);
 }, { once: true });

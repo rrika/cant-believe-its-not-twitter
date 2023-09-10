@@ -114,13 +114,14 @@ class Logic {
 		window.history.back();
 	}
 
-	navigate(i: string) {
-		window.history.pushState(i, "", "/"+i);
-		this.navigateReal(i);
+	navigate(i: string, q?: string) {
+		if (q === undefined)
+			q = "";
+		window.history.pushState(i+q, "", "/"+i+q);
+		this.navigateReal(i, q);
 	}
 
-	navigateReal(i: string) {
-
+	navigateReal(i: string, q: string) {
 		let api_call: string;
 		let tab = 0;
 		let m: string[];
@@ -171,7 +172,7 @@ class Logic {
 		}
 
 		let self = this;
-		fetch('/api/'+api_call).then((response) =>
+		fetch('/api/'+api_call+q).then((response) =>
 			response.json().then((data) => {
 				data["tab"] = tab;
 				self.updateFn(data)
@@ -833,9 +834,13 @@ class App extends Component<AppProps, AppState> {
 
 let div = null;
 let logic = new Logic((props) => render(h(App, props), div));
-window.addEventListener("popstate", (event) => logic.navigateReal(window.location.pathname.slice(1)));
+window.addEventListener("popstate", (event) => logic.navigateReal(
+	window.location.pathname.slice(1),
+	window.location.search));
 window.addEventListener("load", () => {
 	div = document.getElementById("root");
 	render(<App tweets={[]} tab={0}/>, div);
-	logic.navigateReal(window.location.pathname.slice(1));
+	logic.navigateReal(
+		window.location.pathname.slice(1),
+		window.location.search);
 }, {once: true});

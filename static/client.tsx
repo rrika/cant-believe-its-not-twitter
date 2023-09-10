@@ -682,7 +682,7 @@ type HistogramProps = {
 	month?: number | undefined,
 	max_tweets: number,
 	histogram: [number, number[]][],
-	selectMonth: (a: number, b: number) => void
+	selectMonth: (year: number, month: number) => void // 1=jan
 }
 
 let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -692,7 +692,7 @@ let Histogram = (props: HistogramProps) => <>
 		<div class={"t20160910-histogram" + (row[0]==props.year || props.year===undefined ? " t20160910-active" : "")}>
 			<h3>{row[0]}</h3><ol class="t20160910-months t20160910-unstyled">{row[1].map((count, month)=> count
 				? <li><a href="#" class={"t20160910-with-tweets" + (row[0]==props.year && month+1==props.month && props.year !== undefined ? " t20160910-active" : "")}
-					onClick={(ev)=>props.selectMonth(row[0], month+1)}
+					onClick={(ev)=>{ev.preventDefault();props.selectMonth(row[0], month+1)}}
 					title={`${monthNames[month]} ${row[0]}: ${count} Tweets`}>
 						<span class="t20160910-bar" style={`height: ${100*count/props.max_tweets}%;`}></span></a></li>
 				: <li class="t20160910-without-tweets" title=""></li>
@@ -814,6 +814,13 @@ class App extends Component<AppProps, AppState> {
 					themeLinks.push(" ");
 				themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
 			}
+		let selectMonth = (year, month) => {
+			let from = new Date(year, month-1);
+			let until = new Date(year, month);
+			logic.navigate(
+				window.location.pathname.slice(1),
+				`?from=${from.getTime()}&until=${until.getTime()}`);
+		};
 		let sidebar = <Sidebar>
 			<h3>Theme</h3>
 			{themeLinks}
@@ -822,7 +829,7 @@ class App extends Component<AppProps, AppState> {
 				// month={10}
 				max_tweets={this.props.histogram ? this.props.histogram.max_tweets : 0}
 				histogram={this.props.histogram ? this.props.histogram.histogram : []}
-				selectMonth={console.log}/>
+				selectMonth={selectMonth}/>
 		</Sidebar>;
 		if (this.state.mediaViewer) {
 			let mediaViewer = <Modal onEscape={hideMediaViewer}><div class="media-viewer"><img src={this.state.mediaViewer.urls[0]}/></div></Modal>;

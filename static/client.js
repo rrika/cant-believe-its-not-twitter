@@ -508,7 +508,7 @@ let Histogram = (props) => h(Fragment, null,
         h("h3", null, row[0]),
         h("ol", { class: "t20160910-months t20160910-unstyled" }, row[1].map((count, month) => count
             ? h("li", null,
-                h("a", { href: "#", class: "t20160910-with-tweets" + (row[0] == props.year && month + 1 == props.month && props.year !== undefined ? " t20160910-active" : ""), onClick: (ev) => props.selectMonth(row[0], month + 1), title: `${monthNames[month]} ${row[0]}: ${count} Tweets` },
+                h("a", { href: "#", class: "t20160910-with-tweets" + (row[0] == props.year && month + 1 == props.month && props.year !== undefined ? " t20160910-active" : ""), onClick: (ev) => { ev.preventDefault(); props.selectMonth(row[0], month + 1); }, title: `${monthNames[month]} ${row[0]}: ${count} Tweets` },
                     h("span", { class: "t20160910-bar", style: `height: ${100 * count / props.max_tweets}%;` })))
             : h("li", { class: "t20160910-without-tweets", title: "" }))))),
     props.year !== undefined ? h("a", { href: "#" }, "Reset selection") : []);
@@ -594,6 +594,11 @@ class App extends Component {
                     themeLinks.push(" ");
                 themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
             }
+        let selectMonth = (year, month) => {
+            let from = new Date(year, month - 1);
+            let until = new Date(year, month);
+            logic.navigate(window.location.pathname.slice(1), `?from=${from.getTime()}&until=${until.getTime()}`);
+        };
         let sidebar = h(Sidebar, null,
             h("h3", null, "Theme"),
             themeLinks,
@@ -603,7 +608,7 @@ class App extends Component {
             , { 
                 // year={2021}
                 // month={10}
-                max_tweets: this.props.histogram ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram ? this.props.histogram.histogram : [], selectMonth: console.log }));
+                max_tweets: this.props.histogram ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram ? this.props.histogram.histogram : [], selectMonth: selectMonth }));
         if (this.state.mediaViewer) {
             let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
                 h("div", { class: "media-viewer" },

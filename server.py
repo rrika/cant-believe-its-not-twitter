@@ -123,23 +123,31 @@ def histogram_from_dates(dates):
 	}
 
 def paginated_tweets(response):
+	def tweet_date(tweet):
+		if "created_at" in tweet:
+			return datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
+		else:
+			return datetime.datetime.fromtimestamp(((int(tweet["id_str"])>>22) + 1288834974657) / 1000.0)
+
 	if "tweets" not in response:
 		# profile2 query can return either tweets or profiles
 		return response
+	q = dict(request.query.decode())
 	tweets = response["tweets"]
 	dates = []
 	for tweet in tweets:
 		if tweet:
-			if "created_at" in tweet:
-				date = datetime.datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y")
-			else:
-				date = datetime.datetime.fromtimestamp(((int(tweet["id_str"])>>22) + 1288834974657) / 1000.0)
-			dates.append(date)
+			dates.append(tweet_date(tweet))
 	histogram = histogram_from_dates(dates)
 	if not histogram:
 		return response
 	response["histogram"] = histogram
-	response["tweets"] = response["tweets"][:200]
+	qfrom = int(q.get("from", 0))
+	quntil = int(q.get("until", 100000000 + time.time()*1000))
+	response["tweets"] = [
+		tweet for tweet in response["tweets"]
+		if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+	response["tweets"] = response["tweets"][:500]
 	return response
 
 @route('/api/profile/<uid:int>')

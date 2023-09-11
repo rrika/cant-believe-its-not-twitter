@@ -22,7 +22,8 @@ class Events:
 
 def align(
 	snapshots,
-	evid_lower_bound_for_itid=None
+	evid_lower_bound_for_itid=None,
+	allow_retcon=True
 ):
 	print = lambda *args: None
 
@@ -55,7 +56,7 @@ def align(
 						if ri is not None:
 							if i < ri:
 								continue
-							elif ri+1 < i:
+							elif ri+1 < i and not allow_retcon:
 								matching = []
 						matching.append(j)
 						ri = i
@@ -103,7 +104,7 @@ def align(
 				if ri is not None:
 					if i < ri:
 						continue
-					elif i > ri+1:
+					elif i > ri+1 and not allow_retcon:
 						print(evid, itid, ri, i)
 						assert False
 						fi = i
@@ -204,12 +205,12 @@ if __name__ == '__main__':
 	s1 = Items(list("CB"))
 	s2 = Items(list("DCBA"))
 	r = align([s0, s1, s2])
-	assert r == [(7, 'E'), (6, 'C'), (5, 'B'), (4, 'D'), (1, 'A')]
+	assert r == [(7, 'E'), (6, 'C'), (5, 'B'), (4, 'D'), (1, 'A')], r
 
 	s0 = Items(list("ECBA"))
 	s1 = Events([(80, "D"), (70, "C")])
 	r = align([s0, s1])
-	assert r == [(81, 'E'), (80, 'D'), (70, 'C'), (2, 'B'), (1, 'A')]
+	assert r == [(81, 'E'), (80, 'D'), (70, 'C'), (2, 'B'), (1, 'A')], r
 
 	# s0 = Items(list("ECBA"))
 	# s1 = Events([(80, "D"), (70, "C"), (60, "A")])
@@ -218,5 +219,5 @@ if __name__ == '__main__':
 
 	s0 = Items(list("ECBA"))
 	s1 = Items(list("DCA"))
-	r = align([s0, s1])
-	assert r == [(6, 'E'), (5, 'C'), (4, 'B'), (3, 'D'), (1, 'A')]
+	r = align([s0, s1], allow_retcon=False)
+	assert r == [(6, 'E'), (5, 'C'), (4, 'B'), (3, 'D'), (1, 'A')], r

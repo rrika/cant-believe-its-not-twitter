@@ -1,7 +1,7 @@
 import json, os, base64, os.path, re, zipfile, mimetypes
 import datetime
 import seqalign
-from urllib.parse import urlparse, urlunparse, parse_qs
+from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory
 
 class MediaStore:
@@ -677,8 +677,9 @@ class DB:
 			cookies = {entry["name"]: entry["value"] for entry in context["cookies"]}
 		else:
 			cookies = {}
-		uid = cookies.get("twid", None)
-		if uid:
+		uid = None
+		if "twid" in cookies:
+			uid = unquote(cookies["twid"])
 			uid = int(uid[2:])
 		self.uid = uid
 		if uid: self.observers.add(uid)

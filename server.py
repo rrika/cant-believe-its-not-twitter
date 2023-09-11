@@ -74,7 +74,7 @@ class ClientAPI:
 		return [self.get_tweet(twid) for twid in self.db.get_user_media(uid)]
 
 	def likes_view(self, uid):
-		return [self.get_tweet(twid) for twid in self.db.get_user_likes(uid)]
+		return [(likeid, self.get_tweet(twid)) for likeid, twid in self.db.get_user_likes(uid)]
 
 	def bookmarks_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_bookmarks(uid)]
@@ -130,42 +130,72 @@ def paginated_tweets(response):
 		else:
 			return datetime.datetime.fromtimestamp(((int(tweet["id_str"])>>22) + 1288834974657) / 1000.0)
 
-	if "tweets" not in response:
-		# profile2 query can return either tweets or profiles
-		return response
+	def like_date(likeid, tweet):
+		return datetime.datetime.fromtimestamp((likeid>>20) / 1000.0)
 
 	q = dict(request.query.decode())
 	qfrom = int(q.get("from", 0))
 	quntil = int(q.get("until", 100000000 + time.time()*1000))
 	qby = q.get("by", None)
 
-	tweets = response["tweets"]
-	dates_rt = []
-	dates_ot = []
-	for rtid, tweet in tweets:
-		if tweet:
-			dates_rt.append(tweet_date({"id_str": str(rtid)}))
-			dates_ot.append(tweet_date(tweet))
+	if "tweets" in response:
+		tweets = response["tweets"]
+		dates_rt = []
+		dates_ot = []
+		for rtid, tweet in tweets:
+			if tweet:
+				dates_rt.append(tweet_date({"id_str": str(rtid)}))
+				dates_ot.append(tweet_date(tweet))
 
-	histogram_rt = histogram_from_dates(dates_rt, "rt")
-	histogram_ot = histogram_from_dates(dates_ot, "ot")
-	if histogram_rt and histogram_ot:
-		# hack
-		histogram_rt["max_tweets"] = histogram_ot["max_tweets"] = max(
-			histogram_rt["max_tweets"], histogram_ot["max_tweets"])
-	response["histograms"] = [histogram_rt, histogram_ot]
-	if qby in (None, "rt"):
-		response["tweets"] = [
-			tweet for rtid, tweet in tweets
-			if not tweet or qfrom <= tweet_date({"id_str": str(rtid)}).timestamp()*1000 < quntil]
-	elif qby == "ot":
-		response["tweets"] = [
-			tweet for rtid, tweet in tweets
-			if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+		histogram_rt = histogram_from_dates(dates_rt, "rt")
+		histogram_ot = histogram_from_dates(dates_ot, "ot")
+		if histogram_rt and histogram_ot:
+			histogram_rt["max_tweets"] = histogram_ot["max_tweets"] = max(
+				histogram_rt["max_tweets"], histogram_ot["max_tweets"])
+		response["histograms"] = [histogram_rt, histogram_ot]
+
+		if qby in (None, "rt"):
+			response["tweets"] = [
+				tweet for rtid, tweet in tweets
+				if not tweet or qfrom <= tweet_date({"id_str": str(rtid)}).timestamp()*1000 < quntil]
+		elif qby == "ot":
+			response["tweets"] = [
+				tweet for rtid, tweet in tweets
+				if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+		else:
+			response["tweets"] = [tweet for rtid, tweet in tweets[:500]]
+		response["tweets"] = response["tweets"][:500]
+		return response
+
+	elif "likes" in response:
+		tweets = response.pop("likes")
+		dates_lt = [like_date(likeid, tweet) for likeid, (rtid, tweet) in tweets if likeid]
+		dates_ot = [tweet_date(tweet) for likeid, (rtid, tweet) in tweets if tweet]
+		h_lt = histogram_from_dates(dates_lt, "lt")
+		h_ot = histogram_from_dates(dates_ot, "ot")
+		if dates_lt and dates_ot:
+			h_lt["max_tweets"] = h_ot["max_tweets"] = max(h_lt["max_tweets"], h_ot["max_tweets"])
+		response["histograms"] = [h_lt, h_ot]
+
+		if qby in (None, "lt"):
+			response["tweets"] = [
+				tweet for likeid, (rtid, tweet) in tweets
+				if not tweet or qfrom <= (likeid >> 20) < quntil]
+		elif qby == "ot":
+			response["tweets"] = [
+				tweet for likeid, (rtid, tweet) in tweets
+				if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+		else:
+			response["tweets"] = [
+				tweet for likeid, (rtid, tweet) in tweets[:500]]
+		response["tweets"] = response["tweets"][:500]
+		return response
+
 	else:
-		response["tweets"] = [tweet for rtid, tweet in tweets[:500]]
-	response["tweets"] = response["tweets"][:500]
-	return response
+		# profile2 query can return either tweets or profiles
+		# so lack of response["tweets"] is ok, just return unmodified
+		return response
+
 
 @route('/api/profile/<uid:int>')
 def profile(uid):
@@ -207,7 +237,7 @@ def media(uid):
 def likes(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.likes_view(uid)
+		"likes": ca.likes_view(uid)
 	})
 
 @route('/api/bookmarks/<uid:int>')

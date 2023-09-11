@@ -212,7 +212,6 @@ class DB:
 				l.append((synthesized_like_id, twid))
 
 			l.sort(key=lambda a: -a[0])
-			l = [twid for sort_index, twid in l]
 			self.likes_sorted[uid] = l
 
 		# bookmarks in reverse chronological order
@@ -231,18 +230,14 @@ class DB:
 						self.add_follow(a, b)
 
 		# likes are interactions
-		def likes_are_interactions(uid, likes):
+		for uid, likes in self.likes_sorted.items():
 			if uid in self.observers:
-				for twid in likes:
+				for likeid, twid in likes:
 					if twid in self.tweets:
 						tweet = self.tweets[twid]
 						if "user_id_str" in tweet:
 							u = int(tweet["user_id_str"])
 							self.interactions_sorted.setdefault(u, []).append(twid)
-		for uid, likes in self.likes_sorted.items():
-			likes_are_interactions(uid, likes)
-		for uid, likes in self.likes_unsorted.items():
-			likes_are_interactions(uid, likes)
 
 		# interactions in reverse chronological order
 		for tids in self.interactions_sorted.values():

@@ -31,7 +31,7 @@ class ClientAPI:
 
 		quoted_status = None
 		if "quoted_status_id_str" in tweet:
-			quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
+			_, quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
 
 		tweet = tweet.copy()
 		if user:
@@ -60,9 +60,9 @@ class ClientAPI:
 	def get_tweet(self, twid):
 		tweet = self.db.tweets.get(twid, None)
 		if not tweet:
-			return
+			return (twid, None)
 		tweet = self.get_original(tweet)
-		return self.patch(tweet)
+		return (twid, self.patch(tweet))
 
 	def profile_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_tweets(uid)]
@@ -133,21 +133,37 @@ def paginated_tweets(response):
 	if "tweets" not in response:
 		# profile2 query can return either tweets or profiles
 		return response
+
 	q = dict(request.query.decode())
-	tweets = response["tweets"]
-	dates = []
-	for tweet in tweets:
-		if tweet:
-			dates.append(tweet_date(tweet))
-	histogram = histogram_from_dates(dates, "ot")
-	if not histogram:
-		return response
-	response["histograms"] = [histogram]
 	qfrom = int(q.get("from", 0))
 	quntil = int(q.get("until", 100000000 + time.time()*1000))
-	response["tweets"] = [
-		tweet for tweet in response["tweets"]
-		if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+	qby = q.get("by", None)
+
+	tweets = response["tweets"]
+	dates_rt = []
+	dates_ot = []
+	for rtid, tweet in tweets:
+		if tweet:
+			dates_rt.append(tweet_date({"id_str": str(rtid)}))
+			dates_ot.append(tweet_date(tweet))
+
+	histogram_rt = histogram_from_dates(dates_rt, "rt")
+	histogram_ot = histogram_from_dates(dates_ot, "ot")
+	if histogram_rt and histogram_ot:
+		# hack
+		histogram_rt["max_tweets"] = histogram_ot["max_tweets"] = max(
+			histogram_rt["max_tweets"], histogram_ot["max_tweets"])
+	response["histograms"] = [histogram_rt, histogram_ot]
+	if qby in (None, "rt"):
+		response["tweets"] = [
+			tweet for rtid, tweet in tweets
+			if not tweet or qfrom <= tweet_date({"id_str": str(rtid)}).timestamp()*1000 < quntil]
+	elif qby == "ot":
+		response["tweets"] = [
+			tweet for rtid, tweet in tweets
+			if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
+	else:
+		response["tweets"] = [tweet for rtid, tweet in tweets[:500]]
 	response["tweets"] = response["tweets"][:500]
 	return response
 

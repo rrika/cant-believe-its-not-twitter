@@ -514,6 +514,7 @@ let Histogram = (props) => h(Fragment, null,
                 h("a", { href: "#", class: "t20160910-with-tweets" + (row[0] == props.year && month + 1 == props.month && props.year !== undefined ? " t20160910-active" : ""), onClick: (ev) => { ev.preventDefault(); props.selectMonth(row[0], month + 1); }, title: `${monthNames[month]} ${row[0]}: ${count} Tweets` },
                     h("span", { class: "t20160910-bar", style: `height: ${100 * count / props.max_tweets}%;` })))
             : h("li", { class: "t20160910-without-tweets", title: "" }))))),
+    props.toggleMode !== undefined ? h("a", { class: "histogram-mode-button", href: "#", onClick: (ev) => { ev.preventDefault(); props.toggleMode(); } }, "Mode") : [],
     props.year !== undefined ? h("a", { href: "#" }, "Reset selection") : []);
 let Sidebar = (props) => h("div", { class: "sidebar-container" },
     h("div", { class: "t20160910-sidebar-nav" }, props.children));
@@ -542,7 +543,7 @@ class Modal extends Component {
 class App extends Component {
     constructor() {
         super();
-        this.state = { theme: "dim" };
+        this.state = { theme: "dim", histogramMode: 0 };
     }
     render() {
         let top = this.props.topProfile;
@@ -598,10 +599,18 @@ class App extends Component {
                 themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
             }
         let availableHistograms = this.props.histograms ? this.props.histograms.filter((h) => !!h) : [];
+        let toggleHistogramMode = () => {
+            let h = this.state.histogramMode + 1;
+            this.setState({ histogramMode: h < availableHistograms.length ? h : 0 });
+        };
         let selectMonth = (year, month) => {
             let from = new Date(year, month - 1);
             let until = new Date(year, month);
-            logic.navigate(window.location.pathname.slice(1), `?from=${from.getTime()}&until=${until.getTime()}`);
+            let name = availableHistograms[this.state.histogramMode].name;
+            let q = `?from=${from.getTime()}&until=${until.getTime()}`;
+            if (name == 'ot') // this omission works out with the current implicit filtering modes
+                q += "&by=" + name;
+            logic.navigate(window.location.pathname.slice(1), q);
         };
         let sidebar = h(Sidebar, null,
             h("h3", null, "Theme"),
@@ -612,7 +621,7 @@ class App extends Component {
             , { 
                 // year={2021}
                 // month={10}
-                max_tweets: availableHistograms.length ? availableHistograms[0].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[0].histogram : [], selectMonth: selectMonth }));
+                max_tweets: availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : [], selectMonth: selectMonth, toggleMode: availableHistograms.length > 1 ? toggleHistogramMode : undefined }));
         if (this.state.mediaViewer) {
             let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
                 h("div", { class: "media-viewer" },

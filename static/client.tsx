@@ -688,7 +688,8 @@ type HistogramProps = {
 	month?: number | undefined,
 	max_tweets: number,
 	histogram: [number, number[]][],
-	selectMonth: (year: number, month: number) => void // 1=jan
+	selectMonth: (year: number, month: number) => void, // 1=jan
+	toggleMode?: () => void,
 }
 
 let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -705,6 +706,7 @@ let Histogram = (props: HistogramProps) => <>
 			)}</ol>
 		</div>
 	)}
+	{props.toggleMode !== undefined ? <a class="histogram-mode-button" href="#" onClick={(ev) => { ev.preventDefault(); props.toggleMode() }}>Mode</a> : []}
 	{props.year !== undefined ? <a href="#">Reset selection</a> : []}
 </>;
 
@@ -740,7 +742,8 @@ type MediaViewerProps = {
 
 type AppState = {
 	mediaViewer?: MediaViewerProps,
-	theme: string
+	theme: string,
+	histogramMode: number
 };
 
 class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}> {
@@ -764,7 +767,7 @@ class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}>
 class App extends Component<AppProps, AppState> {
 	constructor() {
 		super();
-		this.state = {theme: "dim"};
+		this.state = {theme: "dim", histogramMode: 0};
 	}
 	render() {
 		let top = this.props.topProfile;
@@ -822,12 +825,18 @@ class App extends Component<AppProps, AppState> {
 			}
 		let availableHistograms =
 			this.props.histograms ? this.props.histograms.filter((h)=>!!h) : [];
+		let toggleHistogramMode = () => {
+			let h = this.state.histogramMode + 1;
+			this.setState({histogramMode: h < availableHistograms.length ? h : 0});
+		};
 		let selectMonth = (year, month) => {
 			let from = new Date(year, month-1);
 			let until = new Date(year, month);
-			logic.navigate(
-				window.location.pathname.slice(1),
-				`?from=${from.getTime()}&until=${until.getTime()}`);
+			let name = availableHistograms[this.state.histogramMode].name;
+			let q = `?from=${from.getTime()}&until=${until.getTime()}`;
+			if (name == 'ot') // this omission works out with the current implicit filtering modes
+				q += "&by=" + name;
+			logic.navigate(window.location.pathname.slice(1), q);
 		};
 		let sidebar = <Sidebar>
 			<h3>Theme</h3>
@@ -835,9 +844,10 @@ class App extends Component<AppProps, AppState> {
 			<Histogram
 				// year={2021}
 				// month={10}
-				max_tweets={availableHistograms.length ? availableHistograms[0].max_tweets : 0}
-				histogram={availableHistograms.length ? availableHistograms[0].histogram : []}
-				selectMonth={selectMonth}/>
+				max_tweets={availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0}
+				histogram={availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : []}
+				selectMonth={selectMonth}
+				toggleMode={availableHistograms.length > 1 ? toggleHistogramMode : undefined}/>
 		</Sidebar>;
 		if (this.state.mediaViewer) {
 			let mediaViewer = <Modal onEscape={hideMediaViewer}><div class="media-viewer"><img src={this.state.mediaViewer.urls[0]}/></div></Modal>;

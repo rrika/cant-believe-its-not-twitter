@@ -20,7 +20,10 @@ class Events:
 	def __len__(self):
 		return len(self.seq)
 
-def align(snapshots):
+def align(
+	snapshots,
+	evid_lower_bound_for_itid=None
+):
 	print = lambda *args: None
 
 	current_seq = []
@@ -34,7 +37,7 @@ def align(snapshots):
 
 	seqs = []
 
-	for si, snapshot in enumerate(snapshots):
+	for si, snapshot in enumerate(snapshots): # from most recent to oldest
 		prev_seq = current_seq
 		index = {itid: (i, evid) for i, (itid, evid) in enumerate(prev_seq)}
 		print()
@@ -170,6 +173,8 @@ def align(snapshots):
 						assert False, (xitid, xevid)
 					else:
 						m.append(xevid)
+				if evid_lower_bound_for_itid:
+					m.append(evid_lower_bound_for_itid(itid))
 				if len(m):
 					pevid = recognized[itid, evid] = max(m)+1
 					evid = pevid

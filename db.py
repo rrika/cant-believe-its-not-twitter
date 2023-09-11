@@ -189,7 +189,10 @@ class DB:
 
 		# likes in reverse chronological order
 		for uid, likes_snapshots in self.likes_snapshots.items():
-			l = seqalign.align(sorted(likes_snapshots, key=lambda snap: -snap.time))
+			l = seqalign.align(
+				sorted(likes_snapshots, key=lambda snap: -snap.time),
+				evid_lower_bound_for_itid=lambda twid: ((twid >> 22) + 1288834974657) << 20
+			)
 
 			# 
 			have_twid = set()

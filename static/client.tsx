@@ -91,15 +91,18 @@ type TweetInfo = {
 	context_user?: string
 };
 
+type HistogramData = {
+	name: string,
+	max_tweets: number,
+	histogram: [number, number[]][]
+};
+
 type AppProps = {
 	topProfile?: LegacyProfile,
 	profiles?: LegacyProfile[],
 	tweets?: TweetInfo[],
 	tab: number,
-	histogram?: {
-		max_tweets: number,
-		histogram: [number, number[]][]
-	}
+	histograms?: HistogramData[]
 };
 
 class Logic {
@@ -817,6 +820,8 @@ class App extends Component<AppProps, AppState> {
 					themeLinks.push(" ");
 				themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
 			}
+		let availableHistograms =
+			this.props.histograms ? this.props.histograms.filter((h)=>!!h) : [];
 		let selectMonth = (year, month) => {
 			let from = new Date(year, month-1);
 			let until = new Date(year, month);
@@ -830,8 +835,8 @@ class App extends Component<AppProps, AppState> {
 			<Histogram
 				// year={2021}
 				// month={10}
-				max_tweets={this.props.histogram ? this.props.histogram.max_tweets : 0}
-				histogram={this.props.histogram ? this.props.histogram.histogram : []}
+				max_tweets={availableHistograms.length ? availableHistograms[0].max_tweets : 0}
+				histogram={availableHistograms.length ? availableHistograms[0].histogram : []}
 				selectMonth={selectMonth}/>
 		</Sidebar>;
 		if (this.state.mediaViewer) {

@@ -597,6 +597,7 @@ class App extends Component {
                     themeLinks.push(" ");
                 themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
             }
+        let availableHistograms = this.props.histograms ? this.props.histograms.filter((h) => !!h) : [];
         let selectMonth = (year, month) => {
             let from = new Date(year, month - 1);
             let until = new Date(year, month);
@@ -611,7 +612,7 @@ class App extends Component {
             , { 
                 // year={2021}
                 // month={10}
-                max_tweets: this.props.histogram ? this.props.histogram.max_tweets : 0, histogram: this.props.histogram ? this.props.histogram.histogram : [], selectMonth: selectMonth }));
+                max_tweets: availableHistograms.length ? availableHistograms[0].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[0].histogram : [], selectMonth: selectMonth }));
         if (this.state.mediaViewer) {
             let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
                 h("div", { class: "media-viewer" },

@@ -106,7 +106,7 @@ class ClientAPI:
 
 ca = ClientAPI(db)
 
-def histogram_from_dates(dates):
+def histogram_from_dates(dates, name):
 	histogram = {}
 	zeroes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 	for date in dates:
@@ -118,6 +118,7 @@ def histogram_from_dates(dates):
 	max_tweets = max(max(row) for row in histogram.values())
 	histogram = [(year, histogram.get(year, zeroes)) for year in range(max_year, min_year-1, -1)]
 	return {
+		"name": name,
 		"max_tweets": max_tweets,
 		"histogram": histogram
 	}
@@ -138,10 +139,10 @@ def paginated_tweets(response):
 	for tweet in tweets:
 		if tweet:
 			dates.append(tweet_date(tweet))
-	histogram = histogram_from_dates(dates)
+	histogram = histogram_from_dates(dates, "ot")
 	if not histogram:
 		return response
-	response["histogram"] = histogram
+	response["histograms"] = [histogram]
 	qfrom = int(q.get("from", 0))
 	quntil = int(q.get("until", 100000000 + time.time()*1000))
 	response["tweets"] = [

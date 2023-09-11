@@ -409,16 +409,19 @@ let Tweet = (props) => {
                 h(TweetActions, { t: props.t }))));
 };
 let QuotedTweet = (props) => {
-    let userPath = "/" + props.u.screen_name;
+    if (!props.t.id_str)
+        return h(Fragment, null, "Error, no tweet id on this one");
+    let u = props.u || { name: "Unknown", screen_name: "unknown" };
+    let userPath = "/" + u.screen_name;
     return h("div", { class: "t20230624-embed-rounded-corners" },
         h("div", { class: "t20230630-qrt-top" },
             h("div", { class: "t20230403-user-line" },
-                h("a", { class: "t20230403-user-line-displayname", href: userPath }, props.u.name),
+                h("a", { class: "t20230403-user-line-displayname", href: userPath }, u.name),
                 h("a", { class: "t20230403-user-line-handle", href: userPath, tabIndex: -1 },
                     "@",
-                    props.u.screen_name),
+                    u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}` }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))))),
+                h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${u.screen_name}/status/${props.t.id_str}` }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))))),
         h("div", { class: "t20230630-qrt-bottom t20230403-contents" },
             h(TweetText, { tweet: props.t })));
 };

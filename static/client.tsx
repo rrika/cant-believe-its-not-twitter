@@ -557,14 +557,17 @@ let Tweet = (props: TweetProps) => {
 };
 
 let QuotedTweet = (props: TweetProps) => {
-	let userPath = "/"+props.u.screen_name;
+	if (!props.t.id_str)
+		return <>Error, no tweet id on this one</>;
+	let u = props.u || {name: "Unknown", screen_name: "unknown"}
+	let userPath = "/"+u.screen_name;
 	return <div class="t20230624-embed-rounded-corners">
 		<div class="t20230630-qrt-top">
 			<div class="t20230403-user-line">
-				<a class="t20230403-user-line-displayname" href={userPath}>{props.u.name}</a>
-				<a class="t20230403-user-line-handle" href={userPath} tabIndex={-1}>@{props.u.screen_name}</a>
+				<a class="t20230403-user-line-displayname" href={userPath}>{u.name}</a>
+				<a class="t20230403-user-line-handle" href={userPath} tabIndex={-1}>@{u.screen_name}</a>
 				<span class="t20230403-user-line-punctuation">·</span>
-				<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`}>{
+				<a class="t20230403-user-line-time" href={`https://twitter.com/${u.screen_name}/status/${props.t.id_str}`}>{
 					props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
 			</div>
 		</div>

@@ -54,6 +54,13 @@
 			margin: 2em;
 			max-width: 600px;
 		}
+		.common-frame-990 { /* dm view: 390px + 600px */
+			box-shadow: 0 0 20px gray;
+			margin: 2em;
+			max-width: 990px;
+			display: flex;
+			flex-direction: row;
+		}
 
 		.common-frame-590 {
 			line-height: 20px;
@@ -803,6 +810,315 @@
 			border-radius: 9999px;
 			background-color: rgb(29, 155, 240);
 			content: "";
+		}
+		.t20230912-dmselector {
+			box-sizing: border-box;
+			margin-left: 0;
+			margin-right: 0;
+			/*max-width: 390px;*/
+			width: 390px;
+			font-size: 15px;
+			display: flex;
+			flex-direction: column;
+		}
+		.theme-light .t20230912-dmselector {
+			background-color: rgb(255, 255, 255);
+			border: 1px solid rgb(239, 243, 244);
+			border-top: 0px;
+			border-bottom: 0px;
+		}
+		.theme-dim .t20230912-dmselector {
+			background-color: rgb(21, 32, 43);
+			border: 1px solid rgb(56, 68, 77);
+			border-top: 0px;
+			border-bottom: 0px;
+		}
+		.theme-dim .t20230912-dmselector {
+			color: rgb(255, 255, 255); /* placeholder */
+		}
+		.t20230912-dmselector, .t20230912-dm-conversation-column {
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.t20230912-dmselector-header {
+			/* like t20230628-timeline-header-home */
+			height: 53px;
+			padding: 0 16px;
+			display: flex;
+			align-items: center;
+			font-weight: 700;
+			line-height: 24px;
+			font-size: 20px;
+			flex-shrink: 0;
+		}
+		.t20230912-dm-header {
+			/* like t20230628-timeline-header-home */
+			height: 53px;
+			padding: 0 16px;
+			display: flex;
+			flex-shrink: 0;
+			align-items: center;
+		}
+		.t20230912-dmselector-scrollable {
+			overflow: scroll;
+		}
+		.t20230912-dmselector-search {
+			box-sizing: border-box;
+			height: 68px;
+			padding: 12px;
+			display: flex;
+		}
+		.t20230912-dmselector-search > div {
+			flex: 1;
+			border: 1px solid rgb(66, 83, 100);
+			border-radius: 9999px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 14px;
+			line-height: 16px;
+		}
+		.theme-dim .t20230912-dmselector-search {
+			color: rgb(139, 152, 165);
+		}
+		.t20230912-dmselector-entry {
+			padding: 16px;
+			display: flex;
+			transform: translateY(0);
+			/*cursor: pointer;*/ /*it's a proper <a/> now*/
+			text-decoration: none;
+			color: inherit;
+		}
+		.theme-dim .t20230912-dmselector-entry:hover {
+			background-color: rgba(255, 255, 255, 0.03);
+		}
+		.t20230912-dmselector-entry-avatar {
+			flex-basis: 40px;
+			flex-grow: 0;
+			margin-right: 12px;
+			display: flex; /* avoid padding below image */
+		}
+		.t20230912-dmselector-entry-avatar > img {
+			border-radius: 9999px;
+			overflow: hidden;
+		}
+		.t20230912-dmselector-entry-avatar + div {
+			min-width: 0px;
+		}
+		/* because the DOM structure is something like
+		  <span>
+		    <span>
+		      <span>Displayname</span>
+		      <span>@username</span>
+		    </span>
+		    <span>Date</span>
+		  </span>
+		and there are two nested flexboxes, the baselines of @username and Date don't match.
+		it's quite upsetting, really. */
+		.t20230912-dmselector-entry-user-line {
+			display: flex;
+			align-items: baseline;
+			line-height: 20px;
+		}
+		.t20230912-dmselector-entry-names {
+			flex-shrink: 1;
+			min-width: 0;
+			width: 100%;
+			display: flex;
+		}
+		.t20230912-dmselector-entry-displayname {
+			font-weight: 700;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.t20230912-dmselector-entry-displayname:after {
+			vertical-align: middle;
+			display: inline;
+			content: "";
+		}
+		.t20230912-dmselector-entry-handle {
+			padding-left: 4px;
+			overflow: hidden;
+		  text-overflow: ellipsis;
+		  white-space: nowrap;
+		}
+		.t20230912-dmselector-entry-punctuation {
+			/* only the · is a different font size */
+			line-height: 20px;
+			font-size: 15px;
+			padding: 0 4px;
+			flex-shrink: 0;
+		}
+		.t20230912-dmselector-entry-time {
+			flex-shrink: 0;
+		}
+		.theme-dim .t20230912-dmselector-entry-handle {
+			font-feature-settings: "ss01"; /* this sucks though */
+			color: rgb(139, 152, 165);
+		}
+		.theme-dim .t20230912-dmselector-entry-punctuation {
+			color: rgb(139, 152, 165);
+		}
+		.theme-dim .t20230912-dmselector-entry-time {
+			color: rgb(139, 152, 165);
+		}
+		.t20230912-dmselector-entry-message {
+			max-height: 40px;
+			padding-right: 28.75px;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			overflow: hidden;
+			overflow-wrap: break-word;
+		}
+		.t20230912-dmselector-entry-menubutton {
+			margin-left: 10px; /* in this case it just acts as a spacer */
+		}
+		.theme-dim .t20230912-dmselector-entry-message {
+			color: rgb(139, 152, 165)
+		}
+		.t20230912-dm-header > img {
+			flex-basis: 32px;
+			margin-right: 12px;
+			border-radius: 9999px;
+			overflow: hidden;
+		}
+		.t20230912-dm-header > span {
+			font-weight: 700;
+			font-size: 17px;
+			line-height: 20px;
+		}
+		.theme-dim .t20230912-dm-header > span {
+			color: rgb(247, 249, 249);
+		}
+		.t20230912-dm-conversation-column {
+			width: 600px;
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+			font-size: 15px;
+			height: 100%;
+		}
+		.t20230912-dm-conversation {
+			flex-grow: 1;
+			padding-left: 16px;
+			padding-right: 16px;
+			overflow: scroll;
+		}
+		.theme-light .t20230912-dm-conversation-column {
+			background-color: rgb(255, 255, 255);
+			border-right: 1px solid rgb(239, 243, 244);
+		}
+		.theme-dim .t20230912-dm-conversation-column {
+			background-color: rgb(21, 32, 43);
+			border-right: 1px solid rgb(56, 68, 77);
+		}
+		.t20230912-dm-bubble-container {
+			display: flex;
+			position: relative;
+		}
+		.t20230912-dm-bubble-container > div {
+			display: flex;
+			width: 87.5%;
+		}
+		.t20230912-dm-actions {
+			flex-shrink: 0;
+		}
+		.t20230912-dm-right .t20230912-dm-bubble-container {
+			justify-content: end;
+		}
+		.t20230912-dm-right .t20230912-dm-bubble-container > div {
+			flex-direction: row-reverse;
+		}
+		.t20230912-dm-bubble {
+			display: flex;
+			flex-direction: column;
+			line-height: 20px;
+			padding-top: 12px;
+			padding-left: 16px;
+			padding-right: 16px;
+			padding-bottom: 12px;
+			margin-bottom: 6px;
+			border-radius: 24px;
+		}
+		.t20230912-dm-right .t20230912-dm-bubble {
+			background-color: rgb(29, 155, 240);
+		}
+		.t20230912-dm-left .t20230912-dm-bubble {
+			background-color: rgb(61, 84, 102);
+		}
+		.t20230912-dm-timestamp {
+			/*margin-top: 6px;*/
+			display: flex;
+			align-items: baseline;
+
+			line-height: 16px;
+			font-size: 13px;
+		}
+		.t20230912-dm-right .t20230912-dm-timestamp {
+			justify-content: end;
+		}
+		.t20230912-dm-timestamp-punctuation {
+			/* only the · is a different font size */
+			line-height: 20px;
+			font-size: 15px;
+			padding: 0 4px;
+		}
+		.t20230912-dm-timestamp-seen {
+			margin-bottom: 4px;
+		}
+		.theme-dim .t20230912-dm-bubble {
+			color: rgb(255, 255, 255);
+		}
+		.theme-dim .t20230912-dm-timestamp {
+			color: rgb(139, 152, 165);
+		}
+		.t20230912-dm-actions {
+			width: 76px;
+			height: 36px;
+		}
+		.t20230912-dm-left .t20230912-dm-bubble {
+			margin-right: 12px; /* review */
+		}
+		.t20230912-dm-right .t20230912-dm-bubble {
+			margin-left: 12px; /* review */
+		}
+		.t20230912-dm-right .t20230912-dm-timestamp {
+			text-align: right;
+		}
+		/* on twitter the preceding item has padding-bottom: 24px, but this works too */
+		.t20230912-dm-right + .t20230912-dm-left {
+			padding-top: 24px;
+		}
+		.t20230912-dm-left + .t20230912-dm-right {
+			padding-top: 24px;
+		}
+		.t20230912-dm-left:last-child, .t20230912-dm-right:last-child {
+			padding-bottom: 24px;
+		}
+		.t20230912-dm-editor {
+			flex: 0 0;
+			border-top: 1px solid;
+		}
+		.theme-dim .t20230912-dm-editor {
+			border-top-color: rgb(56, 68, 77);
+		}
+		.t20230912-dm-editor > *:nth-child(1) {
+			height: 0.2rem; /* ??? */
+		}
+		.t20230912-dm-editor > *:nth-child(2) {
+			padding: 4px;
+			margin: 4px 12px;
+			height: 44px; /* this is implicit from the contents */
+			user-select: none;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-sizing: border-box;
+			border-radius: 16px;
+		}
+		.theme-dim .t20230912-dm-editor > *:nth-child(2)  {
+			background-color: rgb(39, 51, 64);
+			color: #8B98A5;
 		}
 		.t20230707-item {
 			padding-top: 12px;

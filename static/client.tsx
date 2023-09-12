@@ -101,13 +101,22 @@ type HistogramData = {
 	histogram: [number, number[]][]
 };
 
+type Message = any;
+type ConversationInfo = [string, LegacyProfile, LegacyProfile, Message];
+type Conversation = [{
+	conversationId: string,
+	messages: Message[]
+}, LegacyProfile, LegacyProfile];
+
 type AppProps = {
 	topProfile?: LegacyProfile,
 	profiles?: LegacyProfile[],
 	focusTweetId?: string,
 	tweets?: TweetInfo[],
 	tab: number,
-	histograms?: HistogramData[]
+	histograms?: HistogramData[],
+	conversations?: ConversationInfo[],
+	conversation?: Conversation
 };
 
 class Logic {
@@ -136,6 +145,12 @@ class Logic {
 		let m: string[];
 		if (i == "") {
 			api_call = "everyone";
+		}
+		else if ((m = i.match(/dm$/)) !== null) {
+			api_call = "dm";
+		}
+		else if ((m = i.match(/dm\/([^/]+)$/)) !== null) {
+			api_call = `dm/${m[1]}`;
 		}
 		else if ((m = i.match(/home\/([^/]+)$/)) !== null) {
 			api_call = `home/${m[1]}`;
@@ -188,7 +203,9 @@ class Logic {
 		fetch('/api/'+api_call+q).then((response) =>
 			response.json().then((data) => {
 				data["tab"] = tab;
-				data["focusTweetId"] = focusTweetId;
+				data["focusTweetId"] = focusTweetId;				
+				if (data.conversation !== undefined)
+					data.conversation[0].messages.reverse(); // workaround
 				self.updateFn(data)
 			})
 		);
@@ -351,6 +368,11 @@ let dateFormat2 = (datestr: string | number) => {
 	return `${date.getHours()}:${date.getMinutes()} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
+let dateFormat3 = (datestr: string | number) => {
+	let date = new Date(datestr);
+	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${date.getHours()}:${date.getMinutes()}`;
+};
+
 let SimpleTweetText = (props: {tweet: TweetInfo}) => {
 	let tweet = props.tweet;
 	let text = tweet.full_text;
@@ -359,7 +381,7 @@ let SimpleTweetText = (props: {tweet: TweetInfo}) => {
 	}
 	if (text.indexOf("<") >= 0) {
 		console.log("tweet has unescaped html", tweet);
-		return <>text</>;
+		return <>{text}</>;
 	}
 
 	return <span dangerouslySetInnerHTML={{__html: text}}/>;
@@ -407,14 +429,16 @@ let TweetText = (props: {tweet: TweetInfo}) => {
 	});
 };
 
-let TextWithEntities = (props: {
+type TextWithEntitiesProps = {
 	full_text: string,
 	entities: Entities,
 	display_text_range: [number, number],
 
 	card_url?: string,
 	quoted_status_id_str?: string
-}) => {
+};
+
+let TextWithEntities = (props: TextWithEntitiesProps) => {
 	let full_text = props.full_text;
 	let entities = partsForTweetEntities(full_text, props.entities);
 	entities.sort((a, b) => a.indices[0] - b.indices[0]);
@@ -751,6 +775,64 @@ let QuotedTweet = (props: TweetProps) => {
 	</div>;
 }
 
+let DMText = (props: {msgc: any}) => {
+	let text = props.msgc.text;
+	if (text.indexOf("<") >= 0) {
+		console.log("dm message has unescaped html", props.msgc);
+		return <>{text}</>;
+	}
+	else if (text.indexOf("&") >= 0)
+		return <span dangerouslySetInnerHTML={{__html: text}}></span>;
+	else
+		return <>{text}</>;
+};
+
+let DMConversationItem = (props: {info: ConversationInfo}) => {
+	let [cid, p0, p1, last_message] = props.info;
+	if (!p1) return <div>{cid}</div>;
+	let p = p1;
+	let last_message_date = dateFormat(last_message.messageCreate.createdAt);
+	let virtualClick = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
+		e.preventDefault();
+		logic.navigate(new URL(e.currentTarget.href).pathname.slice(1));
+	};
+	return <a class="t20230912-dmselector-entry" href={"/dm/"+cid} onClick={virtualClick}>
+		<div class="t20230912-dmselector-entry-avatar">
+			<img width="40" height="40" src={p.profile_image_url_https}/>
+		</div>
+		<div>
+			<div class="t20230912-dmselector-entry-user-line"><span class="t20230912-dmselector-entry-names"><span class="t20230912-dmselector-entry-displayname">{p.name}</span><span class="t20230912-dmselector-entry-handle">@{p.screen_name}</span></span><span class="t20230912-dmselector-entry-punctuation">·</span><span class="t20230912-dmselector-entry-time">{last_message_date}</span></div>
+			<div class="t20230912-dmselector-entry-message"><DMText msgc={last_message.messageCreate}/></div>
+		</div>
+		<div class="t20230912-dmselector-entry-menubutton"></div>
+	</a>;
+};
+
+let DMMessage = (props: {conv: Conversation, msg: any, index: number}) => {
+	let msgc = props.msg.messageCreate;
+	let our_user_id = props.conv[1].user_id_str;
+	let ours = msgc.senderId == our_user_id;
+	let text = msgc.text;
+	let withDate = true;
+	let messages = props.conv[0].messages;
+	if (props.index+1 < messages.length) {
+		let next_msgc = messages[props.index+1].messageCreate;
+		let next_ours = next_msgc.senderId == our_user_id;
+		withDate = ours != next_ours; // show date whenever speaker switches
+	}
+	return <div class={ours ? "t20230912-dm-right" : "t20230912-dm-left"}>
+		<div class="t20230912-dm-bubble-container">
+			<div>
+				<div class="t20230912-dm-bubble"><DMText msgc={msgc}/></div>
+				<div class="t20230912-dm-actions"></div>
+			</div>
+		</div>
+		{withDate
+		? <div class="t20230912-dm-timestamp">{dateFormat3(msgc.createdAt)}</div>
+		: ""}
+	</div>;
+};
+
 let ProfileItem = (props: ProfileProps) => {
 	let p = props.p;
 	let user_id_str = p.user_id_str;
@@ -928,7 +1010,7 @@ class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}>
 		window.removeEventListener("keydown", this);
 	}
 	handleEvent(ev) { // magic function name that will be looked up on the event listener
-		if (ev.key === "Escape")
+		if(ev.key === "Escape")
 			this.props.onEscape();
 	}
 	render() {
@@ -976,69 +1058,108 @@ class App extends Component<AppProps, AppState> {
 		let hideMediaViewer = () => {
 			this.setState({mediaViewer: undefined});
 		};
-		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
-		parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-			<ShyTweet key={tweet.id_str} hideProtectedAccounts={this.state.hideProtectedAccounts} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
-		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
-			<div class="t20230403-timeline" tabIndex={0}>
-				{parts}
-			</div>
-		</div>;
-		let setTheme = (theme: string) => (ev) => {
-			ev.preventDefault();
-			this.setState({theme});
-		};
-		let themeLinks = [];
-		for (let theme of ["light", "dim"])
-			if (this.state.theme != theme) {
-				if (themeLinks.length > 0)
-					themeLinks.push(" ");
-				themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
-			}
-		let toggleHideProtectedAccounts = (ev) => {
-			ev.preventDefault();
-			this.setState({hideProtectedAccounts: !this.state.hideProtectedAccounts});
-		};
-		let availableHistograms =
-			this.props.histograms ? this.props.histograms.filter((h)=>!!h) : [];
-		let toggleHistogramMode = () => {
-			let h = this.state.histogramMode + 1;
-			this.setState({histogramMode: h < availableHistograms.length ? h : 0});
-		};
-		let selectMonth = (year, month) => {
-			let from = new Date(year, month-1);
-			let until = new Date(year, month);
-			let name = availableHistograms[this.state.histogramMode].name;
-			let q = `?from=${from.getTime()}&until=${until.getTime()}`;
-			if (name == 'ot') // this omission works out with the current implicit filtering modes
-				q += "&by=" + name;
-			logic.navigate(window.location.pathname.slice(1), q);
-		};
-		let sidebar = <Sidebar>
-			<h3>Settings</h3>
-			<span>Set theme: </span>{themeLinks}<br/>
-			<a href="#" onClick={toggleHideProtectedAccounts}>{
-				this.state.hideProtectedAccounts ? "Show" : "Hide"} Tweets by locked accounts</a>
-			<Histogram
-				// year={2021}
-				// month={10}
-				max_tweets={availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0}
-				histogram={availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : []}
-				selectMonth={selectMonth}
-				toggleMode={availableHistograms.length > 1 ? toggleHistogramMode : undefined}/>
-		</Sidebar>;
-		if (this.state.mediaViewer) {
-			let escapeByClick = (ev) => {
-				if (ev.target == ev.currentTarget)
-					hideMediaViewer();
+		if (this.props.conversations) {
+			document.body.parentElement.style.height = "100%";
+			document.body.style.height = "100%";
+			document.body.style.alignItems = "stretch";
+			return <div class={`common-frame-990 theme-${this.state.theme}`}>
+				<div class="t20230912-dmselector">
+					<div class="t20230912-dmselector-header">Messages</div>
+					<div class="t20230912-dmselector-scrollable">
+						{this.props.conversations.map((x)=> <DMConversationItem info={x}/>)}
+					</div>
+				</div>
+				<div class="t20230912-dm-conversation-column">
+					<div class="t20230912-dm-header">
+						<img width="32" height="32" src={this.props.conversation
+							? this.props.conversation[2].profile_image_url_https
+							: ""}/>
+						<span>
+							{this.props.conversation
+							? this.props.conversation[2].name
+							: ""}
+						</span>
+					</div>
+					<div class="t20230912-dm-conversation">
+						{this.props.conversation
+						 ? this.props.conversation[0].messages.map((x, i)=> <DMMessage conv={this.props.conversation} msg={x} index={i}/>)
+						 : "Select a message"}
+					 </div>
+					<div class="t20230912-dm-editor">
+						<div></div>
+						<div>What would you have said?</div>
+					</div>
+				</div>
+			</div>;
+		} else {
+			delete document.body.parentElement.style.height;
+			delete document.body.style.height;
+			delete document.body.style.alignItems;
+			parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
+			parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
+				<ShyTweet key={tweet.id_str} hideProtectedAccounts={this.state.hideProtectedAccounts} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
+			let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
+				<div class="t20230403-timeline" tabIndex={0}>
+					{parts}
+				</div>
+			</div>;
+			let setTheme = (theme: string) => (ev) => {
+				ev.preventDefault();
+				this.setState({theme});
 			};
-			let mediaViewer =
-				<Modal onEscape={hideMediaViewer}>
-					<div class="media-viewer" onClick={escapeByClick}>
-						<img src={this.state.mediaViewer.urls[0]}/></div></Modal>;
-			return [timeline, sidebar, mediaViewer];
-		} else
-			return [timeline, sidebar];
+			let themeLinks = [];
+			for (let theme of ["light", "dim"])
+				if (this.state.theme != theme) {
+					if (themeLinks.length > 0)
+						themeLinks.push(" ");
+					themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
+				}
+			let toggleHideProtectedAccounts = (ev) => {
+				ev.preventDefault();
+				this.setState({hideProtectedAccounts: !this.state.hideProtectedAccounts});
+			};
+			let availableHistograms =
+				this.props.histograms ? this.props.histograms.filter((h)=>!!h) : [];
+			let toggleHistogramMode = () => {
+				let h = this.state.histogramMode + 1;
+				this.setState({histogramMode: h < availableHistograms.length ? h : 0});
+			};
+			let selectMonth = (year, month) => {
+				let from = new Date(year, month-1);
+				let until = new Date(year, month);
+				let name = availableHistograms[this.state.histogramMode].name;
+				let q = `?from=${from.getTime()}&until=${until.getTime()}`;
+				if (name == 'ot') // this omission works out with the current implicit filtering modes
+					q += "&by=" + name;
+				logic.navigate(window.location.pathname.slice(1), q);
+			};
+			let sidebar = <Sidebar>
+				<h3>Settings</h3>
+				<span>Set theme: </span>{themeLinks}<br/>
+				<a href="#" onClick={toggleHideProtectedAccounts}>{
+					this.state.hideProtectedAccounts ? "Show" : "Hide"} Tweets by locked accounts</a><br/>
+				<a href="/dm">Go to Direct Messages</a>
+				<Histogram
+					// year={2021}
+					// month={10}
+					max_tweets={availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0}
+					histogram={availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : []}
+					selectMonth={selectMonth}
+					toggleMode={availableHistograms.length > 1 ? toggleHistogramMode : undefined}/>
+			</Sidebar>;
+			if (this.state.mediaViewer) {
+				let escapeByClick = (ev) => {
+					if (ev.target == ev.currentTarget)
+						hideMediaViewer();
+				};
+				let mediaViewer =
+					<Modal onEscape={hideMediaViewer}>
+						<div class="media-viewer" onClick={escapeByClick}>
+							<img src={this.state.mediaViewer.urls[0]}/></div></Modal>;
+				return [timeline, sidebar, mediaViewer];
+			} else
+				return [timeline, sidebar];
+		}
 	}
 }
 

@@ -131,6 +131,28 @@ class ClientAPI:
 		uids.sort()
 		return [self.get_profile(uid) for neg_num_tweets, uid in uids if -neg_num_tweets >= 2]
 
+	# direct messages
+
+	def conversations(self):
+		r = []
+		for c in self.db.conversations:
+			cid = c["conversationId"]
+			a, b = cid.split("-")
+			if int(a) not in db.observers and int(b) in db.observers:
+				a, b = b, a
+			r.append([cid, self.get_profile(int(a)), self.get_profile(int(b)), c["messages"][0]])
+		return r
+
+	def conversation(self, cid):
+		cs = {c["conversationId"]: c for c in self.db.conversations}
+		if cid not in cs:
+			return None
+		c = cs[cid]
+		a, b = cid.split("-")
+		if int(a) not in db.observers and int(b) in db.observers:
+			a, b = b, a
+		return [c, self.get_profile(int(a)), self.get_profile(int(b))]
+
 ca = ClientAPI(db)
 
 def histogram_from_dates(dates, name):
@@ -321,6 +343,17 @@ def following(uid):
 def everyone():
 	return {"profiles": ca.everyone()}
 
+@route('/api/dm')
+def conversations():
+	return {"conversations": ca.conversations()}
+
+@route('/api/dm/<cid>')
+def conversation(cid):
+	return {
+		"conversations": ca.conversations(),
+		"conversation": ca.conversation(cid)
+	}
+
 @route('/fonts/<path:path>')
 def resources_20230628(path):
 	return static_file(path, root=server_path+'/static/20230628/fonts')
@@ -390,6 +423,8 @@ def favicon():
 
 @route('/')
 @route('/<who>')
+@route('/dm')
+@route('/dm/<conversation>')
 @route('/everyone')
 @route('/thread/<twid:int>')
 @route('/home/<who>')

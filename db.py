@@ -566,6 +566,10 @@ class DB:
 		snapshot.time = self.time
 		self.likes_snapshots.setdefault(self.uid, []).append(snapshot)
 
+		# no merging happening yet
+		conversations = self.load_with_prefix(fs, "direct-messages.js", "window.YTD.direct_messages.part0 = ")
+		self.conversations = [c["dmConversation"] for c in conversations]
+
 		if tweets_media:
 			self.media.add_from_archive(fs, tweets_media)
 

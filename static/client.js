@@ -20,6 +20,12 @@ class Logic {
         if (i == "") {
             api_call = "everyone";
         }
+        else if ((m = i.match(/dm$/)) !== null) {
+            api_call = "dm";
+        }
+        else if ((m = i.match(/dm\/([^/]+)$/)) !== null) {
+            api_call = `dm/${m[1]}`;
+        }
         else if ((m = i.match(/home\/([^/]+)$/)) !== null) {
             api_call = `home/${m[1]}`;
         }
@@ -70,6 +76,8 @@ class Logic {
         fetch('/api/' + api_call + q).then((response) => response.json().then((data) => {
             data["tab"] = tab;
             data["focusTweetId"] = focusTweetId;
+            if (data.conversation !== undefined)
+                data.conversation[0].messages.reverse(); // workaround
             self.updateFn(data);
         }));
     }
@@ -208,6 +216,10 @@ let dateFormat2 = (datestr) => {
     let date = new Date(datestr);
     return `${date.getHours()}:${date.getMinutes()} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
+let dateFormat3 = (datestr) => {
+    let date = new Date(datestr);
+    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${date.getHours()}:${date.getMinutes()}`;
+};
 let SimpleTweetText = (props) => {
     let tweet = props.tweet;
     let text = tweet.full_text;
@@ -216,7 +228,7 @@ let SimpleTweetText = (props) => {
     }
     if (text.indexOf("<") >= 0) {
         console.log("tweet has unescaped html", tweet);
-        return h(Fragment, null, "text");
+        return h(Fragment, null, text);
     }
     return h("span", { dangerouslySetInnerHTML: { __html: text } });
 };
@@ -573,6 +585,65 @@ let QuotedTweet = (props) => {
         h("div", { class: "t20230630-qrt-bottom t20230403-contents" },
             h(TweetText, { tweet: props.t })));
 };
+let DMText = (props) => {
+    let text = props.msgc.text;
+    if (text.indexOf("<") >= 0) {
+        console.log("dm message has unescaped html", props.msgc);
+        return h(Fragment, null, text);
+    }
+    else if (text.indexOf("&") >= 0)
+        return h("span", { dangerouslySetInnerHTML: { __html: text } });
+    else
+        return h(Fragment, null, text);
+};
+let DMConversationItem = (props) => {
+    let [cid, p0, p1, last_message] = props.info;
+    if (!p1)
+        return h("div", null, cid);
+    let p = p1;
+    let last_message_date = dateFormat(last_message.messageCreate.createdAt);
+    let virtualClick = (e) => {
+        e.preventDefault();
+        logic.navigate(new URL(e.currentTarget.href).pathname.slice(1));
+    };
+    return h("a", { class: "t20230912-dmselector-entry", href: "/dm/" + cid, onClick: virtualClick },
+        h("div", { class: "t20230912-dmselector-entry-avatar" },
+            h("img", { width: "40", height: "40", src: p.profile_image_url_https })),
+        h("div", null,
+            h("div", { class: "t20230912-dmselector-entry-user-line" },
+                h("span", { class: "t20230912-dmselector-entry-names" },
+                    h("span", { class: "t20230912-dmselector-entry-displayname" }, p.name),
+                    h("span", { class: "t20230912-dmselector-entry-handle" },
+                        "@",
+                        p.screen_name)),
+                h("span", { class: "t20230912-dmselector-entry-punctuation" }, "\u00B7"),
+                h("span", { class: "t20230912-dmselector-entry-time" }, last_message_date)),
+            h("div", { class: "t20230912-dmselector-entry-message" },
+                h(DMText, { msgc: last_message.messageCreate }))),
+        h("div", { class: "t20230912-dmselector-entry-menubutton" }));
+};
+let DMMessage = (props) => {
+    let msgc = props.msg.messageCreate;
+    let our_user_id = props.conv[1].user_id_str;
+    let ours = msgc.senderId == our_user_id;
+    let text = msgc.text;
+    let withDate = true;
+    let messages = props.conv[0].messages;
+    if (props.index + 1 < messages.length) {
+        let next_msgc = messages[props.index + 1].messageCreate;
+        let next_ours = next_msgc.senderId == our_user_id;
+        withDate = ours != next_ours; // show date whenever speaker switches
+    }
+    return h("div", { class: ours ? "t20230912-dm-right" : "t20230912-dm-left" },
+        h("div", { class: "t20230912-dm-bubble-container" },
+            h("div", null,
+                h("div", { class: "t20230912-dm-bubble" },
+                    h(DMText, { msgc: msgc })),
+                h("div", { class: "t20230912-dm-actions" }))),
+        withDate
+            ? h("div", { class: "t20230912-dm-timestamp" }, dateFormat3(msgc.createdAt))
+            : "");
+};
 let ProfileItem = (props) => {
     let p = props.p;
     let user_id_str = p.user_id_str;
@@ -730,67 +801,97 @@ class App extends Component {
         let hideMediaViewer = () => {
             this.setState({ mediaViewer: undefined });
         };
-        parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
-        parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-            h(ShyTweet, { key: tweet.id_str, hideProtectedAccounts: this.state.hideProtectedAccounts, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
-        let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
-            h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
-        let setTheme = (theme) => (ev) => {
-            ev.preventDefault();
-            this.setState({ theme });
-        };
-        let themeLinks = [];
-        for (let theme of ["light", "dim"])
-            if (this.state.theme != theme) {
-                if (themeLinks.length > 0)
-                    themeLinks.push(" ");
-                themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
-            }
-        let toggleHideProtectedAccounts = (ev) => {
-            ev.preventDefault();
-            this.setState({ hideProtectedAccounts: !this.state.hideProtectedAccounts });
-        };
-        let availableHistograms = this.props.histograms ? this.props.histograms.filter((h) => !!h) : [];
-        let toggleHistogramMode = () => {
-            let h = this.state.histogramMode + 1;
-            this.setState({ histogramMode: h < availableHistograms.length ? h : 0 });
-        };
-        let selectMonth = (year, month) => {
-            let from = new Date(year, month - 1);
-            let until = new Date(year, month);
-            let name = availableHistograms[this.state.histogramMode].name;
-            let q = `?from=${from.getTime()}&until=${until.getTime()}`;
-            if (name == 'ot') // this omission works out with the current implicit filtering modes
-                q += "&by=" + name;
-            logic.navigate(window.location.pathname.slice(1), q);
-        };
-        let sidebar = h(Sidebar, null,
-            h("h3", null, "Settings"),
-            h("span", null, "Set theme: "),
-            themeLinks,
-            h("br", null),
-            h("a", { href: "#", onClick: toggleHideProtectedAccounts },
-                this.state.hideProtectedAccounts ? "Show" : "Hide",
-                " Tweets by locked accounts"),
-            h(Histogram
-            // year={2021}
-            // month={10}
-            , { 
+        if (this.props.conversations) {
+            document.body.parentElement.style.height = "100%";
+            document.body.style.height = "100%";
+            document.body.style.alignItems = "stretch";
+            return h("div", { class: `common-frame-990 theme-${this.state.theme}` },
+                h("div", { class: "t20230912-dmselector" },
+                    h("div", { class: "t20230912-dmselector-header" }, "Messages"),
+                    h("div", { class: "t20230912-dmselector-scrollable" }, this.props.conversations.map((x) => h(DMConversationItem, { info: x })))),
+                h("div", { class: "t20230912-dm-conversation-column" },
+                    h("div", { class: "t20230912-dm-header" },
+                        h("img", { width: "32", height: "32", src: this.props.conversation
+                                ? this.props.conversation[2].profile_image_url_https
+                                : "" }),
+                        h("span", null, this.props.conversation
+                            ? this.props.conversation[2].name
+                            : "")),
+                    h("div", { class: "t20230912-dm-conversation" }, this.props.conversation
+                        ? this.props.conversation[0].messages.map((x, i) => h(DMMessage, { conv: this.props.conversation, msg: x, index: i }))
+                        : "Select a message"),
+                    h("div", { class: "t20230912-dm-editor" },
+                        h("div", null),
+                        h("div", null, "What would you have said?"))));
+        }
+        else {
+            delete document.body.parentElement.style.height;
+            delete document.body.style.height;
+            delete document.body.style.alignItems;
+            parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
+            parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
+                h(ShyTweet, { key: tweet.id_str, hideProtectedAccounts: this.state.hideProtectedAccounts, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
+            let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
+                h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
+            let setTheme = (theme) => (ev) => {
+                ev.preventDefault();
+                this.setState({ theme });
+            };
+            let themeLinks = [];
+            for (let theme of ["light", "dim"])
+                if (this.state.theme != theme) {
+                    if (themeLinks.length > 0)
+                        themeLinks.push(" ");
+                    themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
+                }
+            let toggleHideProtectedAccounts = (ev) => {
+                ev.preventDefault();
+                this.setState({ hideProtectedAccounts: !this.state.hideProtectedAccounts });
+            };
+            let availableHistograms = this.props.histograms ? this.props.histograms.filter((h) => !!h) : [];
+            let toggleHistogramMode = () => {
+                let h = this.state.histogramMode + 1;
+                this.setState({ histogramMode: h < availableHistograms.length ? h : 0 });
+            };
+            let selectMonth = (year, month) => {
+                let from = new Date(year, month - 1);
+                let until = new Date(year, month);
+                let name = availableHistograms[this.state.histogramMode].name;
+                let q = `?from=${from.getTime()}&until=${until.getTime()}`;
+                if (name == 'ot') // this omission works out with the current implicit filtering modes
+                    q += "&by=" + name;
+                logic.navigate(window.location.pathname.slice(1), q);
+            };
+            let sidebar = h(Sidebar, null,
+                h("h3", null, "Settings"),
+                h("span", null, "Set theme: "),
+                themeLinks,
+                h("br", null),
+                h("a", { href: "#", onClick: toggleHideProtectedAccounts },
+                    this.state.hideProtectedAccounts ? "Show" : "Hide",
+                    " Tweets by locked accounts"),
+                h("br", null),
+                h("a", { href: "/dm" }, "Go to Direct Messages"),
+                h(Histogram
                 // year={2021}
                 // month={10}
-                max_tweets: availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : [], selectMonth: selectMonth, toggleMode: availableHistograms.length > 1 ? toggleHistogramMode : undefined }));
-        if (this.state.mediaViewer) {
-            let escapeByClick = (ev) => {
-                if (ev.target == ev.currentTarget)
-                    hideMediaViewer();
-            };
-            let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
-                h("div", { class: "media-viewer", onClick: escapeByClick },
-                    h("img", { src: this.state.mediaViewer.urls[0] })));
-            return [timeline, sidebar, mediaViewer];
+                , { 
+                    // year={2021}
+                    // month={10}
+                    max_tweets: availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : [], selectMonth: selectMonth, toggleMode: availableHistograms.length > 1 ? toggleHistogramMode : undefined }));
+            if (this.state.mediaViewer) {
+                let escapeByClick = (ev) => {
+                    if (ev.target == ev.currentTarget)
+                        hideMediaViewer();
+                };
+                let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
+                    h("div", { class: "media-viewer", onClick: escapeByClick },
+                        h("img", { src: this.state.mediaViewer.urls[0] })));
+                return [timeline, sidebar, mediaViewer];
+            }
+            else
+                return [timeline, sidebar];
         }
-        else
-            return [timeline, sidebar];
     }
 }
 let div = null;

@@ -82,6 +82,11 @@ class ClientAPI:
 	def interactions_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_interactions(uid)]
 
+	def thread_view(self, twid):
+		# dummy implementation
+		_, tweet = self.get_tweet(twid)
+		return [tweet]
+
 	# users
 
 	def get_profile(self, uid):
@@ -253,6 +258,12 @@ def interactions(uid):
 		"topProfile": ca.get_profile(uid),
 		"tweets": ca.interactions_view(uid)
 	})
+
+@route('/api/thread/<twid:int>')
+def thread(twid):
+	return {
+		"tweets": ca.thread_view(twid)
+	}
 
 @route('/api/followers/<uid:int>')
 def followers(uid):

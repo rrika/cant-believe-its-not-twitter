@@ -589,6 +589,8 @@ class DB:
 				cursors.append((name, content))
 		elif ct == "TimelineTweetComposer":
 			pass
+		elif ct == "TimelineTombstone":
+			pass
 		else:
 			assert False, ct
 

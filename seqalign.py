@@ -82,6 +82,10 @@ def align(
 				assert ri is not None, "figure out what to do in this case"
 				current_seq += prev_seq[ri+1:]
 
+		if isinstance(snapshot, Events):
+			if len(snapshot.seq) == 0:
+				continue
+
 		if isinstance(snapshot, Events) and not prev_seq:
 			current_seq = [(itid, evid) for evid, itid in snapshot.seq]
 			for j, (evid, itid) in enumerate(snapshot.seq):

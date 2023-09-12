@@ -100,6 +100,7 @@ type HistogramData = {
 type AppProps = {
 	topProfile?: LegacyProfile,
 	profiles?: LegacyProfile[],
+	focusTweetId?: string,
 	tweets?: TweetInfo[],
 	tab: number,
 	histograms?: HistogramData[]
@@ -127,12 +128,14 @@ class Logic {
 	navigateReal(i: string, q: string) {
 		let api_call: string;
 		let tab = 0;
+		let focusTweetId = undefined;
 		let m: string[];
 		if (i == "") {
 			api_call = "everyone";
 		}
 		else if ((m = i.match(/thread\/(\d+)$/)) !== null) {
 			api_call = i; // easy
+			focusTweetId = m[1];
 		}
 		else if ((m = i.match(/profile\/(\d+)$/)) !== null) {
 			api_call = `profile/${m[1]}`;
@@ -178,6 +181,7 @@ class Logic {
 		fetch('/api/'+api_call+q).then((response) =>
 			response.json().then((data) => {
 				data["tab"] = tab;
+				data["focusTweetId"] = focusTweetId;
 				self.updateFn(data)
 			})
 		);
@@ -187,6 +191,7 @@ class Logic {
 type TweetProps = {
 	t: TweetInfo,
 	u: LegacyProfile,
+	focus?: boolean,
 	showMediaViewer: (urls: string[]) => void
 }
 
@@ -454,6 +459,7 @@ let AnonymousTweet = (props: {t: TweetInfo}) => {
 
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
+	let p = props.u;
 	let id_str = props.t.id_str;
 	let user_id_str = props.t.user_id_str;
 	if (!user_id_str)
@@ -520,7 +526,11 @@ let Tweet = (props: TweetProps) => {
 	if (t.quoted_status)
 		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer}/>);
 
-	return <div class="t20230403-tweet t20230403-tweet-unfocused" tabIndex={0} onClick={selectTweet}>
+	let focusClass = props.focus
+		? "t20230403-tweet-focused"
+		: "t20230403-tweet-unfocused";
+
+	return <div class={"t20230403-tweet "+focusClass} tabIndex={0} onClick={selectTweet}>
 		{t.context_icon ?
 		<div class="t20230403-tweet-split t20230705-tweet-context">
 			<div class="t20230403-avatar-column">
@@ -540,9 +550,27 @@ let Tweet = (props: TweetProps) => {
 						<img alt="" draggable={true} src={props.u.profile_image_url_https} class="t20230403-avatar"/>
 					</div>
 				</a>
-				{t.line ? <div class="t20230624-thread-line-below"></div> : []}
+				{t.line && !props.focus ? <div class="t20230624-thread-line-below"></div> : []}
 			</div>
 			<div class="t20230403-main-column">
+				{props.focus
+				?
+				<div class="t20230627-profile-li-header">
+					<a href={userPath} onClick={selectUser} class="t20230627-profile-li-header-1">
+						<div class="t20230403-user-line-displayname">
+							{p.name}
+						</div>
+						{p.protected
+							? <svg class="t20230627-padlock" viewBox="0 0 24 24" aria-label="Protected account" role="img" data-testid="icon-lock"><g><path d="M17.5 7H17v-.25c0-2.76-2.24-5-5-5s-5 2.24-5 5V7h-.5C5.12 7 4 8.12 4 9.5v9C4 19.88 5.12 21 6.5 21h11c1.39 0 2.5-1.12 2.5-2.5v-9C20 8.12 18.89 7 17.5 7zM13 14.73V17h-2v-2.27c-.59-.34-1-.99-1-1.73 0-1.1.9-2 2-2 1.11 0 2 .9 2 2 0 .74-.4 1.39-1 1.73zM15 7H9v-.25c0-1.66 1.35-3 3-3 1.66 0 3 1.34 3 3V7z"></path></g></svg>
+							: []}
+					</a>
+					<div class="t20230627-profile-li-header-2">
+						<span class="t20230403-user-line-handle">@{p.screen_name}</span>
+						{/*p.followed_by ? <span class="t20230627-profile-badge">Follows you</span> : []*/}
+					</div>
+				</div>
+				:
+				<>
 				<div class="t20230403-user-line">
 					<a class="t20230403-user-line-displayname" href={userPath} onClick={selectUser}>{props.u.name}</a>
 					<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
@@ -554,8 +582,14 @@ let Tweet = (props: TweetProps) => {
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
 				{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
 				<TweetActions t={props.t}/>
+				</>}
 			</div>
 		</div>
+		{props.focus ? <>
+			<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
+			{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
+			<TweetActions t={props.t}/>
+		</> : []}
 	</div>;
 };
 
@@ -806,7 +840,7 @@ class App extends Component<AppProps, AppState> {
 		};
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
 		parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} showMediaViewer={showMediaViewer}/> : []));
+			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer}/> : []));
 		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}

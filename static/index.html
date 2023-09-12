@@ -158,10 +158,10 @@
 			height: 20px;
 			fill: currentcolor;
 		}
-		.theme-light .t20230403-tweet:hover {
+		.theme-light .t20230403-tweet.t20230403-tweet-unfocused:hover {
 			background-color: rgba(0, 0, 0, 0.03);
 		}
-		.theme-dim .t20230403-tweet:hover {
+		.theme-dim .t20230403-tweet.t20230403-tweet-unfocused:hover {
 			background-color: rgba(255, 255, 255, 0.03);
 		}
 		.t20230403-tweet {
@@ -175,6 +175,9 @@
 		.t20230403-tweet-split {
 			display: flex;
 			flex-direction: row;
+		}
+		.t20230403-tweet-focused .t20230403-tweet-split {
+			margin-bottom: 4px;
 		}
 		.theme-light .t20230403-tweet {
 			border-bottom: 1px solid rgb(239, 243, 244);
@@ -277,7 +280,7 @@
 		.t20230627-profile-li-header-1 > .t20230403-user-line-displayname {
 			margin-right: 2px; /* override 4px from above */
 		}
-		.t20230627-profile-li-header-1 > .t20230403-user-line-displayname:after {
+		.t20230627-profile-li .t20230627-profile-li-header-1 > .t20230403-user-line-displayname:after {
 			vertical-align: middle;
 			display: inline;
 			content: "";
@@ -366,6 +369,11 @@
 		}
 		.t20230403-tweet .t20230403-contents {
 			white-space: pre-wrap;
+		}
+		.t20230403-tweet.t20230403-tweet-focused > .t20230403-contents {
+			font-size: 17px;
+			line-height: 24px;
+			padding-top: 12px;
 		}
 		.theme-light .t20230403-contents {
 			color: rgb(15, 20, 25)

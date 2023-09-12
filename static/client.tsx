@@ -790,7 +790,7 @@ class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}>
 		window.removeEventListener("keydown", this);
 	}
 	handleEvent(ev) { // magic function name that will be looked up on the event listener
-		if(ev.key === "Escape")
+		if (ev.key === "Escape")
 			this.props.onEscape();
 	}
 	render() {
@@ -884,7 +884,14 @@ class App extends Component<AppProps, AppState> {
 				toggleMode={availableHistograms.length > 1 ? toggleHistogramMode : undefined}/>
 		</Sidebar>;
 		if (this.state.mediaViewer) {
-			let mediaViewer = <Modal onEscape={hideMediaViewer}><div class="media-viewer"><img src={this.state.mediaViewer.urls[0]}/></div></Modal>;
+			let escapeByClick = (ev) => {
+				if (ev.target == ev.currentTarget)
+					hideMediaViewer();
+			};
+			let mediaViewer =
+				<Modal onEscape={hideMediaViewer}>
+					<div class="media-viewer" onClick={escapeByClick}>
+						<img src={this.state.mediaViewer.urls[0]}/></div></Modal>;
 			return [timeline, sidebar, mediaViewer];
 		} else
 			return [timeline, sidebar];

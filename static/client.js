@@ -650,8 +650,12 @@ class App extends Component {
                 // month={10}
                 max_tweets: availableHistograms.length ? availableHistograms[this.state.histogramMode].max_tweets : 0, histogram: availableHistograms.length ? availableHistograms[this.state.histogramMode].histogram : [], selectMonth: selectMonth, toggleMode: availableHistograms.length > 1 ? toggleHistogramMode : undefined }));
         if (this.state.mediaViewer) {
+            let escapeByClick = (ev) => {
+                if (ev.target == ev.currentTarget)
+                    hideMediaViewer();
+            };
             let mediaViewer = h(Modal, { onEscape: hideMediaViewer },
-                h("div", { class: "media-viewer" },
+                h("div", { class: "media-viewer", onClick: escapeByClick },
                     h("img", { src: this.state.mediaViewer.urls[0] })));
             return [timeline, sidebar, mediaViewer];
         }

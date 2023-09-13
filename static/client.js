@@ -379,7 +379,7 @@ let Tweet = (props) => {
         }
     }
     if (t.quoted_status)
-        embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer }));
+        embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer, showReplyingTo: props.showReplyingTo }));
     let focusClass = props.focus
         ? "t20230403-tweet-focused"
         : "t20230403-tweet-unfocused";
@@ -425,6 +425,12 @@ let Tweet = (props) => {
                             h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
                             h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))),
                             h("span", { class: "t20230403-user-line-menu" })),
+                        (props.showReplyingTo && t.in_reply_to_status_id_str) ?
+                            h("div", { class: "t20230805-replying-to" },
+                                "Replying to ",
+                                h("a", { href: "/profile/" + t.in_reply_to_user_id_str },
+                                    "@",
+                                    t.in_reply_to_screen_name)) : [],
                         h("div", { class: "t20230403-contents" },
                             h(TweetText, { tweet: props.t })),
                         embeds.length ? h("div", { class: "t20230624-embeds" }, embeds) : [],
@@ -611,7 +617,7 @@ class App extends Component {
         };
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
         parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-            h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer }) : []));
+            h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
         let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
         let setTheme = (theme) => (ev) => {

@@ -538,11 +538,11 @@
 			flex-direction: row;
 			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 		}
-		.t20230403-contents a {
+		.t20230403-contents a, .t20230805-replying-to a {
 			color: rgb(29, 155, 240);
 			text-decoration: none;
 		}
-		.t20230403-contents a:hover {
+		.t20230403-contents a:hover, .t20230805-replying-to a:hover {
 			text-decoration: underline;
 		}
 		/*body {
@@ -785,6 +785,11 @@
 			border-radius: 9999px;
 			background-color: rgb(29, 155, 240);
 			content: "";
+		}
+		.t20230805-replying-to {
+			display: inline-block;
+			margin-bottom: 2px;
+			color: rgb(139, 152, 165);
 		}
 		body {
 			position: relative;

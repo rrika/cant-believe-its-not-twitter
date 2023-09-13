@@ -79,6 +79,9 @@ type TweetInfo = {
 	user_id_str: string,
 	created_at: string,
 	display_text_range?: [number, number],
+	in_reply_to_screen_name?: string,
+	in_reply_to_status_id_str?: string,
+	in_reply_to_user_id_str?: string,
 
 	bookmarkers?: string[],
 	favoriters?: string[],
@@ -191,6 +194,7 @@ class Logic {
 type TweetProps = {
 	t: TweetInfo,
 	u: LegacyProfile,
+	showReplyingTo: boolean,
 	focus?: boolean,
 	showMediaViewer: (urls: string[]) => void
 }
@@ -524,7 +528,7 @@ let Tweet = (props: TweetProps) => {
 		}
 	}
 	if (t.quoted_status)
-		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer}/>);
+		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer} showReplyingTo={props.showReplyingTo}/>);
 
 	let focusClass = props.focus
 		? "t20230403-tweet-focused"
@@ -579,6 +583,8 @@ let Tweet = (props: TweetProps) => {
 						props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
+				{(props.showReplyingTo && t.in_reply_to_status_id_str ) ?
+					<div class="t20230805-replying-to">Replying to <a href={"/profile/"+t.in_reply_to_user_id_str}>@{t.in_reply_to_screen_name}</a></div> : []}
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
 				{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
 				<TweetActions t={props.t}/>
@@ -840,7 +846,7 @@ class App extends Component<AppProps, AppState> {
 		};
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
 		parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer}/> : []));
+			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
 		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}

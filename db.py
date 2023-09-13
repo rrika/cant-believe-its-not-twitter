@@ -610,7 +610,7 @@ class DB:
 		if cei_component == "related_tweet":
 			return None # garbage
 		if cei_component == "suggest_ranked_organic_tweet":
-			return None # COMPUTER: thats too hard. heres some tweets i think are good.
+			pass # this one is okay, sometimes, scrolling down a users profile will have some of their tweets marked with this
 
 		if et == "TimelineTimelineItem":
 			return (name, self.add_item_content(item["itemContent"], name, cursors))

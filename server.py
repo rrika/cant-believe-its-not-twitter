@@ -64,6 +64,17 @@ class ClientAPI:
 		tweet = self.get_original(tweet)
 		return (twid, self.patch(tweet))
 
+	def home_view(self, uid):
+		# this could be cached
+		uids = self.db.followings.get(uid, [])
+		print(uids)
+		twids = []
+		for uid in uids:
+			twids.extend(self.db.get_user_with_replies(uid))
+		twids.sort()
+		twids.reverse()
+		return [self.get_tweet(twid) for twid in twids]
+
 	def profile_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_tweets(uid)]
 
@@ -201,6 +212,22 @@ def paginated_tweets(response):
 		# so lack of response["tweets"] is ok, just return unmodified
 		return response
 
+
+@route('/api/home/<who>')
+def home(who):
+	try:
+		uid = int(who)
+	except:
+		uids = db.user_by_handle.get(who, set())
+		if len(uids) != 1:
+			return paginated_tweets({
+				"profiles": [ca.get_profile(uid) for uid in uids]
+			})
+		uid, = uids
+
+	return paginated_tweets({
+		"tweets": ca.home_view(uid)
+	})
 
 @route('/api/profile/<uid:int>')
 def profile(uid):
@@ -351,6 +378,7 @@ def favicon():
 @route('/<who>')
 @route('/everyone')
 @route('/thread/<twid:int>')
+@route('/home/<who>')
 @route('/profile/<who>')
 @route('/profile/<who>/with_replies')
 @route('/profile/<who>/media')

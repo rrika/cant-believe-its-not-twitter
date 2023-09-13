@@ -20,6 +20,9 @@ class Logic {
         if (i == "") {
             api_call = "everyone";
         }
+        else if ((m = i.match(/home\/([^/]+)$/)) !== null) {
+            api_call = `home/${m[1]}`;
+        }
         else if ((m = i.match(/thread\/(\d+)$/)) !== null) {
             api_call = i; // easy
             focusTweetId = m[1];

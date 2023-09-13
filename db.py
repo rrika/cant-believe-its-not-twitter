@@ -614,6 +614,7 @@ def unscramble(likes):
 class DB:
 	def __init__(self):
 		self.tweets = {}
+		self.replies = {}
 		self.profiles = {}
 		self.followers = {} # could be part of .profiles
 		self.followings = {} # could be part of .profiles
@@ -1090,6 +1091,10 @@ class DB:
 			if retweeted:
 				g = dbtweet.setdefault("retweeters", [])
 				if observer not in g: g.append(observer)
+		if "in_reply_to_status_id_str" in tweet:
+			rtwid = int(tweet["in_reply_to_status_id_str"])
+			r = self.replies.setdefault(rtwid, [])
+			if twid not in r: r.append(twid)
 		uid = int(tweet["user_id_str"])
 
 	def add_legacy_tweet_2019(self, tweet):
@@ -1805,6 +1810,31 @@ class DB:
 			self.load_api(fname, item, context)
 
 		return (f, end)
+
+	def new_thread_view(self, twid):
+		seq = []
+
+		up = twid
+		while up:
+			tw = self.tweets.get(up, None)
+			seq.insert(0, (None, None, up))
+			up = tw and tw.get("in_reply_to_status_id_str", None)
+			up = up and int(up)
+		del up
+
+		dn = twid
+		while dn:
+			ndn = None
+			for r in self.replies.get(dn, []):
+				tw = self.tweets.get(r, None)
+				seq.append((None, None, r))
+				if tw:
+					ndn = r
+			dn = ndn
+		del dn
+
+		return seq
+
 
 header_re = re.compile(rb"(.*): (.*)\r\n")
 

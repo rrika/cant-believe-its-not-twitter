@@ -128,9 +128,24 @@ class ClientAPI:
 		return [self.get_tweet(twid) for twid in self.db.get_user_interactions(uid)]
 
 	def thread_view(self, twid):
-		# dummy implementation
-		_, tweet = self.get_tweet(twid)
-		return [tweet]
+		seq = []
+
+		layout = self.db.new_thread_view(twid)
+		def flatten(l):
+			if isinstance(l, int):
+				_, t = self.get_tweet(l)
+				if t:
+					seq.append(t)
+			elif isinstance(l, list):
+				for sort_index, name, mod in l:
+					flatten(mod)
+			else:
+				assert False
+		flatten(layout)
+		for i in range(0, len(seq)-1):
+			if seq[i].get("id_str", -1) == seq[i+1].get("in_reply_to_status_id_str", -2):
+				seq[i]["line"] = True
+		return seq
 
 	def search(self, query):
 		return [self.get_tweet(twid) for twid in self.db.search(query)]

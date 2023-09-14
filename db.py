@@ -4,12 +4,174 @@ import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory
 
+class Sizes:
+	def __init__(self, sizes):
+		self.sizes = sizes
+		self.by_name = {}
+		for i, (w, h, *names) in enumerate(sizes):
+			for name in names:
+				self.by_name[name] = (i, w, h)
+
+	def valid_name(self, size):
+		return size in self.by_name
+
+media_sizes = Sizes([
+	(64, 64, "tiny"),
+	(120, 120, "120x120"),
+	(240, 240, "240x240"),
+	(360, 360, "360x360"),
+	(680, 680, "small"),
+	(900, 900, "900x900"),
+	(1200, 1200, "medium"),
+	(2048, 2048, "large"),
+	(4096, 4096, "4096x4096", "orig")
+])
+
+profile_images_sizes = Sizes([
+	(24, 24, "_mini"),
+	(48, 48, "_normal"),
+	(73, 73, "_bigger"),
+	(96, 96, "_x96"),
+	(128, 128, "_reasonably_small"),
+	(200, 200, "_200x200"),
+	(400, 400, "_400x400"),
+	(4096, 4096, "") # assumed maximum
+])
+
+profile_banners_sizes = Sizes([ # aspect ratio 3:1
+	(300, 100, "/300x100"),
+	(600, 200, "/600x200"),
+	(1080, 360, "/1080x360"),
+	(1500, 500, "/1500x500"),
+	(4096, 4096, "")
+])
+
+def decode_twimg(orig_url):
+	url = urlparse(orig_url)
+	if url.netloc == "abs.twimg.com":
+		base = url.netloc + "/" + url.path
+		return base, (None, None), (None, None)
+
+	assert url.netloc in ("pbs.twimg.com", ""), orig_url
+
+	query = parse_qs(url.query)
+	assert all(len(values)==1 for values in query.values())
+	query = {k: v[0] for k, v in query.items()}
+
+	ext = None
+	size = None
+	sizes = media_sizes
+	fullres_fmt = "{base}?format={ext}&name=orig"
+
+	if url.path.startswith("/profile_images/"):
+		# commented out because some twitter users set their profile picture before twitter renamed images to a random letter string
+		# m = re.fullmatch(r"/profile_images/([0-9]+)/([A-Za-z0-9_-]+?)(_(normal|bigger|x96|reasonably_small|mini|200x200|400x400))?\.([A-Za-z0-9]{1,5})", url.path)
+		m = re.fullmatch(r"(/profile_images/([0-9]+)/(.+?))(_(normal|bigger|x96|reasonably_small|mini|200x200|400x400))?\.([A-Za-z0-9]{1,5})", url.path)
+		assert m, url.path
+		size = m.group(4) or ""
+		ext = m.group(6)
+		sizes = profile_images_sizes
+		fullres_fmt = "{base}.{ext}"
+		default_size = ""
+		assert not query, query
+
+	elif url.path.startswith("/profile_banners/"):
+		m = re.fullmatch(r"(/profile_banners/([0-9]+)/([0-9]+))(/(300x100|600x200|1080x360|1500x500))?", url.path)
+		assert m, url.path
+		size = m.group(4) or ""
+		sizes = profile_banners_sizes
+		fullres_fmt = "{base}"
+		default_size = ""
+		assert not query, query
+
+	elif url.path.startswith("/media/"):
+		m = re.fullmatch(r"(/media/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?(:([a-z0-9_]+))?", url.path)
+		assert m, url.path
+		ext = m.group(4)
+		size = m.group(5)
+		default_size = "medium" # sometimes
+
+	elif url.path.startswith("/amplify_video_thumb/"):
+		m = re.fullmatch(r"(/amplify_video_thumb/([0-9]+)/img/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
+		assert m, url.path
+		ext = m.group(5)
+		default_size = "medium" # maybe
+
+	elif url.path.startswith("/ext_tw_video_thumb/"):
+		m = re.fullmatch(r"(/ext_tw_video_thumb/([0-9]+)/p[ur]/img/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
+		assert m, url.path
+		ext = m.group(5)
+		default_size = "medium"
+
+	elif url.path.startswith("/tweet_video_thumb/"):
+		m = re.fullmatch(r"(/tweet_video_thumb/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
+		assert m, url.path
+		ext = m.group(4)
+		default_size = "medium" # probably
+
+	elif url.path.startswith("/card_img/"):
+		m = re.fullmatch(r"(/card_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
+		assert m, url.path
+		default_size = None # won't load without size
+
+	elif url.path.startswith("/semantic_core_img/"):
+		m = re.fullmatch(r"(/semantic_core_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
+		assert m, url.path
+		default_size = None # won't load without size
+
+	else:
+		assert False, orig_url
+
+	base = m.group(1)
+
+	if "format" in query:
+		assert not ext, orig_url
+		ext = query.pop("format")
+		assert ext is None or ext in ("jpg", "png"), ext
+	elif ext and ext.lower() == "jpeg":
+		ext = "jpg"
+
+	if "name" in query:
+		assert not size, orig_url
+		size = query.pop("name")
+
+	size = size or default_size
+
+	assert size is None or sizes.valid_name(size), (orig_url, size, sizes)
+	assert ext is None or ext.lower() in ("jpg", "jpeg", "png", "gif"), ext # more allowed when part of filename
+	assert not query, orig_url
+	fullres = "https://pbs.twimg.com"+fullres_fmt.format(base=base, ext=ext, size=size)
+
+	return base, (ext, size), (sizes, fullres)
+
 class ImageSet:
 	def __init__(self):
 		self.entries = []
+		self.have_largest = False # TODO
 
-	def add(self, blob):
-		self.entries.append(blob)
+	def add(self, blob, variant, image_set_info):
+		ext, variant_name = variant
+
+		# assign at first opportunity
+		if hasattr(self, "sizes"): assert self.sizes == image_set_info[0]
+		if hasattr(self, "fullres"): assert self.fullres == image_set_info[1]
+		self.sizes, self.fullres = image_set_info
+
+		self.entries.append((ext, variant_name, blob))
+		self.entries.sort(key=lambda ext_variant_blob:
+			self.sizes.by_name[ext_variant_blob[1]][0])
+
+	def get_variant(self, ext, variant_name):
+		if ext:
+			entries = [entry for entry in self.entries if entry[0] == ext]
+		else:
+			entries = self.entries
+		if not entries:
+			return None, False
+		for _, entry_variant_name, blob, *_ in entries:
+			if variant_name == entry_variant_name:
+				return blob, True
+		return entries[-1][2], self.have_largest
 
 class MediaStore:
 	def __init__(self):
@@ -18,47 +180,40 @@ class MediaStore:
 
 	# add images
 
-	def add_from_archive(self, fs, tweet_media):
+	def add_from_archive(self, fs, tweets_media):
 		r = re.compile(r"(\d+)-([A-Za-z0-9_\-]+)\.(.*)")
-		for media_fname in fs.listdir(tweet_media):
+		for media_fname in fs.listdir(tweets_media):
 			m = r.match(media_fname)
 			if not m:
 				print("what about", media_fname)
 				continue
-			name = m.group(2)+"."+m.group(3)
-			imageset = self.media_by_name.setdefault(name, ImageSet())
-			#fmt = m.group(2)
-			#size = "medium"
-			path = tweet_media+"/"+media_fname
-			#imageset.append((fmt, size, path))
+			cache_key = "/media/"+m.group(2)
+			imageset = self.media_by_url.setdefault(cache_key, ImageSet())
+			fmt = m.group(3)
+			path = tweets_media+"/"+media_fname
+			fullres = "https://pbs.twimg.com{}?format={}&name=orig".format(cache_key, fmt)
 			if isinstance(fs, ZipFS):
 				item = InZip(fs.zipf, path)
 				item.mime = mimetypes.guess_type(path)
 			else:
 				item = OnDisk(path)
-			imageset.add(item)
+			imageset.add(item, (fmt, "medium"), (media_sizes, fullres))
 
 	def add_http_snapshot(self, url, item):
-		urlparts = urlparse(url)
-		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
-		name = os.path.basename(urlparts.path)
-		imageset = self.media_by_url.setdefault(cleanurl, ImageSet())
-		imageset.add(item)
+		cache_key, variant, image_set_info = decode_twimg(url)
+		imageset = self.media_by_url.setdefault(cache_key, ImageSet())
+		imageset.add(item, variant, image_set_info)
 
 	# check store
 
 	def lookup(self, url):
-		urlparts = urlparse(url)
-		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
-		noexturl = cleanurl.rsplit(".", 1)[0]
-		name = os.path.basename(urlparts.path)
-		empty = ImageSet()
-		imageset = (
-			self.media_by_url.get(cleanurl, empty).entries +
-			self.media_by_url.get(noexturl, empty).entries +
-			self.media_by_name.get(name, empty).entries)
+		if url is None:
+			return None, False
+		cache_key, (fmt, variant_name), (sizes, _) = decode_twimg(url)
+		imageset = self.media_by_url.get(cache_key, None)
 		if imageset:
-			return imageset[0]
+			return imageset.get_variant(fmt, variant_name)
+		return None, False
 
 # replace urls in tweet/user objects
 
@@ -849,6 +1004,9 @@ class DB:
 			return # also not interesting for now
 
 		if url.startswith("https://pbs.twimg.com/"):
+			if isinstance(item, InMemory) and item.data == "":
+				print("empty   ", fname, path)
+				return # why
 			print("media   ", fname, path)
 			self.media.add_http_snapshot(url, item)
 			return

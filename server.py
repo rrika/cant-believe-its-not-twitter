@@ -348,7 +348,10 @@ def static_blob(data, mime, mtime = None):
 
 @route('/media/<path:path>')
 def media(path):
-	item, cacheable = db.media.lookup("https://"+path), True
+	original_url = "https://"+path
+	if request.query_string:
+		original_url += "?" + request.query_string
+	item, cacheable = db.media.lookup(original_url)
 	if not cacheable and "HTTP_IF_MODIFIED_SINCE" in request.environ:
 		del request.environ["HTTP_IF_MODIFIED_SINCE"]
 	if isinstance(item, OnDisk):

@@ -4,6 +4,13 @@ import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory
 
+class ImageSet:
+	def __init__(self):
+		self.entries = []
+
+	def add(self, blob):
+		self.entries.append(blob)
+
 class MediaStore:
 	def __init__(self):
 		self.media_by_url = {}
@@ -19,7 +26,7 @@ class MediaStore:
 				print("what about", media_fname)
 				continue
 			name = m.group(2)+"."+m.group(3)
-			imageset = self.media_by_name.setdefault(name, [])
+			imageset = self.media_by_name.setdefault(name, ImageSet())
 			#fmt = m.group(2)
 			#size = "medium"
 			path = tweet_media+"/"+media_fname
@@ -29,14 +36,14 @@ class MediaStore:
 				item.mime = mimetypes.guess_type(path)
 			else:
 				item = OnDisk(path)
-			imageset.append(item)
+			imageset.add(item)
 
 	def add_http_snapshot(self, url, item):
 		urlparts = urlparse(url)
 		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
 		name = os.path.basename(urlparts.path)
-		imageset = self.media_by_url.setdefault(cleanurl, [])
-		imageset.append(item)
+		imageset = self.media_by_url.setdefault(cleanurl, ImageSet())
+		imageset.add(item)
 
 	# check store
 
@@ -45,10 +52,11 @@ class MediaStore:
 		cleanurl = urlunparse(urlparts._replace(query=None, fragment=None))
 		noexturl = cleanurl.rsplit(".", 1)[0]
 		name = os.path.basename(urlparts.path)
+		empty = ImageSet()
 		imageset = (
-			self.media_by_url.get(cleanurl, []) +
-			self.media_by_url.get(noexturl, []) +
-			self.media_by_name.get(name, []))
+			self.media_by_url.get(cleanurl, empty).entries +
+			self.media_by_url.get(noexturl, empty).entries +
+			self.media_by_name.get(name, empty).entries)
 		if imageset:
 			return imageset[0]
 

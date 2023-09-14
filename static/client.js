@@ -337,7 +337,7 @@ let Tweet = (props) => {
     let embeds = [];
     if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
         let media = props.t.entities.media;
-        let items = media.map((media) => h(TweetImage, { src: media.media_url_https, onClick: (e) => {
+        let items = media.map((media) => h(TweetImage, { src: media.media_url_https + "?name=small", onClick: (e) => {
                 e.preventDefault();
                 props.showMediaViewer([media.media_url_https]);
             } }));

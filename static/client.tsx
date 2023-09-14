@@ -491,7 +491,7 @@ let Tweet = (props: TweetProps) => {
 	let embeds = [];
 	if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
 		let media = props.t.entities.media;
-		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https} onClick={
+		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https + "?name=small"} onClick={
 			(e: JSX.TargetedMouseEvent<HTMLElement>) => {
 				e.preventDefault();
 				props.showMediaViewer([media.media_url_https]);

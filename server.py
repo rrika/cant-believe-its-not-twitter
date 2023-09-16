@@ -51,7 +51,9 @@ class ClientAPI:
 		new_tweet = new_tweet.copy()
 		new_tweet["context_icon"] = "retweet"
 		try:
-			new_tweet["context_user"] = self.db.profiles.get(int(tweet["user_id_str"]), {"name": "ERROR"})["name"]
+			retweeter = self.db.profiles.get(int(tweet["user_id_str"]), {})
+			new_tweet["context_user"] = retweeter.get("name", "ERROR")
+			new_tweet["context_user_protected"] = retweeter.get("protected", None)
 		except:
 			pprint(tweet)
 			raise

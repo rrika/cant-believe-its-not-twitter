@@ -485,7 +485,7 @@ let Tweet = (props) => {
                         h("g", null,
                             h("path", { d: "M7 4.5C7 3.12 8.12 2 9.5 2h5C15.88 2 17 3.12 17 4.5v5.26L20.12 16H13v5l-1 2-1-2v-5H3.88L7 9.76V4.5z" }))) :
                         h("span", null, t.context_icon)),
-                h("div", { class: "t20230403-main-column" }, t.context_icon == "retweet" ? t.context_user + " Retweeted" :
+                h("div", { class: "t20230403-main-column" }, t.context_icon == "retweet" ? (props.hideContext ? "[redacted]" : t.context_user) + " Retweeted" :
                     t.context_icon == "pin" ? "Pinned Tweet" :
                         "Missing context description: " + t.context_icon))
             : [],
@@ -538,6 +538,24 @@ let Tweet = (props) => {
                     h("time", { dateTime: new Date(timestamp).toISOString() }, dateFormat2(timestamp)))),
             h(TweetActions, { t: props.t })) : []);
 };
+class ShyTweet extends Component {
+    constructor() {
+        super();
+        this.state = { revealed: false };
+    }
+    render() {
+        let hidden = this.props.hideProtectedAccounts && this.props.u.protected && !this.state.revealed;
+        let hideContext = this.props.hideProtectedAccounts && this.props.t.context_user_protected === true && !this.state.revealed;
+        let show = (ev) => {
+            ev.preventDefault();
+            this.setState({ revealed: true });
+        };
+        if (hidden)
+            return h(WithheldItem, { message: "This Tweet is from protected account @" + this.props.u.screen_name, action: "View", handler: show });
+        else
+            return h(Tweet, { hideContext: hideContext, ...this.props });
+    }
+}
 let QuotedTweet = (props) => {
     if (!props.t.id_str)
         return h(Fragment, null, "Error, no tweet id on this one");
@@ -673,7 +691,7 @@ class Modal extends Component {
 class App extends Component {
     constructor() {
         super();
-        this.state = { theme: "dim", histogramMode: 0 };
+        this.state = { theme: "dim", histogramMode: 0, hideProtectedAccounts: false };
     }
     render() {
         let top = this.props.topProfile;
@@ -714,7 +732,7 @@ class App extends Component {
         };
         parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
         parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-            h(Tweet, { key: tweet.id_str, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
+            h(ShyTweet, { key: tweet.id_str, hideProtectedAccounts: this.state.hideProtectedAccounts, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
         let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
             h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
         let setTheme = (theme) => (ev) => {
@@ -728,6 +746,10 @@ class App extends Component {
                     themeLinks.push(" ");
                 themeLinks.push(h("a", { href: "#", onClick: setTheme(theme) }, theme));
             }
+        let toggleHideProtectedAccounts = (ev) => {
+            ev.preventDefault();
+            this.setState({ hideProtectedAccounts: !this.state.hideProtectedAccounts });
+        };
         let availableHistograms = this.props.histograms ? this.props.histograms.filter((h) => !!h) : [];
         let toggleHistogramMode = () => {
             let h = this.state.histogramMode + 1;
@@ -743,8 +765,13 @@ class App extends Component {
             logic.navigate(window.location.pathname.slice(1), q);
         };
         let sidebar = h(Sidebar, null,
-            h("h3", null, "Theme"),
+            h("h3", null, "Settings"),
+            h("span", null, "Set theme: "),
             themeLinks,
+            h("br", null),
+            h("a", { href: "#", onClick: toggleHideProtectedAccounts },
+                this.state.hideProtectedAccounts ? "Show" : "Hide",
+                " Tweets by locked accounts"),
             h(Histogram
             // year={2021}
             // month={10}

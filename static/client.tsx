@@ -92,6 +92,7 @@ type TweetInfo = {
 	quoted_status?: TweetInfo
 	context_icon?: string,
 	context_user?: string
+	context_user_protected?: boolean | null
 };
 
 type HistogramData = {
@@ -197,6 +198,7 @@ class Logic {
 type TweetProps = {
 	t: TweetInfo,
 	u: LegacyProfile,
+	hideContext?: boolean,
 	showReplyingTo: boolean,
 	focus?: boolean,
 	showMediaViewer: (urls: string[]) => void
@@ -647,7 +649,7 @@ let Tweet = (props: TweetProps) => {
 				}
 			</div>
 			<div class="t20230403-main-column">{
-				t.context_icon == "retweet" ? t.context_user + " Retweeted" :
+				t.context_icon == "retweet" ? (props.hideContext ? "[redacted]" : t.context_user) + " Retweeted" :
 				t.context_icon == "pin" ? "Pinned Tweet" :
 				"Missing context description: " + t.context_icon
 			}
@@ -708,6 +710,25 @@ let Tweet = (props: TweetProps) => {
 		</> : []}
 	</div>;
 };
+
+class ShyTweet extends Component<TweetProps & {hideProtectedAccounts: boolean}, {revealed: boolean}> {
+	constructor() {
+		super();
+		this.state = {revealed: false};
+	}
+	render() {
+		let hidden = this.props.hideProtectedAccounts && this.props.u.protected && !this.state.revealed;
+		let hideContext = this.props.hideProtectedAccounts && this.props.t.context_user_protected === true && !this.state.revealed;
+		let show = (ev) => {
+			ev.preventDefault();
+			this.setState({revealed: true});
+		};
+		if (hidden)
+			return <WithheldItem message={"This Tweet is from protected account @"+this.props.u.screen_name} action="View" handler={show}/>;
+		else
+			return <Tweet hideContext={hideContext} {...this.props}/>;
+	}
+}
 
 let QuotedTweet = (props: TweetProps) => {
 	if (!props.t.id_str)
@@ -893,7 +914,8 @@ type MediaViewerProps = {
 type AppState = {
 	mediaViewer?: MediaViewerProps,
 	theme: string,
-	histogramMode: number
+	histogramMode: number,
+	hideProtectedAccounts: boolean
 };
 
 class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}> {
@@ -917,7 +939,7 @@ class Modal extends Component<{children: ComponentChildren, onEscape: ()=>void}>
 class App extends Component<AppProps, AppState> {
 	constructor() {
 		super();
-		this.state = {theme: "dim", histogramMode: 0};
+		this.state = {theme: "dim", histogramMode: 0, hideProtectedAccounts: false};
 	}
 	render() {
 		let top = this.props.topProfile;
@@ -956,7 +978,7 @@ class App extends Component<AppProps, AppState> {
 		};
 		parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
 		parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
-			<Tweet key={tweet.id_str} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
+			<ShyTweet key={tweet.id_str} hideProtectedAccounts={this.state.hideProtectedAccounts} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
 		let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 			<div class="t20230403-timeline" tabIndex={0}>
 				{parts}
@@ -973,6 +995,10 @@ class App extends Component<AppProps, AppState> {
 					themeLinks.push(" ");
 				themeLinks.push(<a href="#" onClick={setTheme(theme)}>{theme}</a>);
 			}
+		let toggleHideProtectedAccounts = (ev) => {
+			ev.preventDefault();
+			this.setState({hideProtectedAccounts: !this.state.hideProtectedAccounts});
+		};
 		let availableHistograms =
 			this.props.histograms ? this.props.histograms.filter((h)=>!!h) : [];
 		let toggleHistogramMode = () => {
@@ -989,8 +1015,10 @@ class App extends Component<AppProps, AppState> {
 			logic.navigate(window.location.pathname.slice(1), q);
 		};
 		let sidebar = <Sidebar>
-			<h3>Theme</h3>
-			{themeLinks}
+			<h3>Settings</h3>
+			<span>Set theme: </span>{themeLinks}<br/>
+			<a href="#" onClick={toggleHideProtectedAccounts}>{
+				this.state.hideProtectedAccounts ? "Show" : "Hide"} Tweets by locked accounts</a>
 			<Histogram
 				// year={2021}
 				// month={10}

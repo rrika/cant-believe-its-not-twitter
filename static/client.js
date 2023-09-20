@@ -129,6 +129,30 @@ let MediaGrid = (props) => {
                                     h("div", { class: "t20230701-media-vdiv" }, [items[0], items[1]]),
                                     h("div", { class: "t20230701-media-vdiv" }, [items[2], items[3]]))));
 };
+let SmallVideoEmbed = (props) => {
+    let bv = props.card.binding_values;
+    let image_url = "";
+    if (props.card.name == "player")
+        image_url = bv.player_image.image_value.url;
+    else if (props.card.name == "summary" && bv.thumbnail_image !== undefined)
+        image_url = bv.thumbnail_image.image_value.url;
+    return h("div", { class: "t20230624-embed-rounded-corners t20230705-video" },
+        h("div", { class: "t20230705-video-left" },
+            h("div", { class: "t20230624-image-div", style: image_url ? `background-image: url('${image_url}');` : "" }),
+            props.card.name == "player" ?
+                h("div", { class: "t20230705-overlay" },
+                    h("div", { class: "t20230705-play-button" },
+                        h("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" },
+                            h("g", null,
+                                h("path", { d: "M21 12L4 2v20l17-10z" }))))) : []),
+        h("div", { class: "t20230705-video-right" },
+            bv.domain !== undefined ?
+                h("div", { class: "t20230705-video-origin" }, bv.domain.string_value) : [],
+            bv.title !== undefined ?
+                h("div", { class: "t20230705-video-title" }, bv.title.string_value) : [props.card.name],
+            bv.description !== undefined ?
+                h("div", { class: "t20230705-video-desc" }, bv.description.string_value) : []));
+};
 let Poll = (props) => {
     let card = props.card;
     let labels = [];
@@ -425,7 +449,11 @@ let Tweet = (props) => {
         embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer, showReplyingTo: props.showReplyingTo }));
     if (t.card) {
         let n = t.card.name;
-        if (n == "poll2choice_text_only" ||
+        if (n == "player")
+            embeds.push(h(SmallVideoEmbed, { card: t.card }));
+        else if (n == "summary")
+            embeds.push(h(SmallVideoEmbed, { card: t.card }));
+        else if (n == "poll2choice_text_only" ||
             n == "poll3choice_text_only" ||
             n == "poll4choice_text_only")
             embeds.push(h(Poll, { card: t.card }));

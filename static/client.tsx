@@ -256,6 +256,35 @@ let MediaGrid = (props: {items: VNode<any>[]}) => {
 	</div>
 };
 
+let SmallVideoEmbed = (props: {card: any}) => {
+	let bv = props.card.binding_values;
+	let image_url = "";
+	if (props.card.name == "player")
+		image_url = bv.player_image.image_value.url
+	else if (props.card.name == "summary" && bv.thumbnail_image !== undefined)
+		image_url = bv.thumbnail_image.image_value.url;
+	return <div class="t20230624-embed-rounded-corners t20230705-video">
+		<div class="t20230705-video-left">
+			<div class="t20230624-image-div" style={image_url ? `background-image: url('${image_url}');` : ""}>
+			</div>
+			{props.card.name == "player" ?
+			<div class="t20230705-overlay">
+				<div class="t20230705-play-button">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><g><path d="M21 12L4 2v20l17-10z"></path></g></svg>
+				</div>
+			</div> : []}
+		</div>
+		<div class="t20230705-video-right">
+			{bv.domain !== undefined ?
+				<div class="t20230705-video-origin">{bv.domain.string_value}</div> : []}
+			{bv.title !== undefined ?
+				<div class="t20230705-video-title">{bv.title.string_value}</div> : [props.card.name]}
+			{bv.description !== undefined ?
+				<div class="t20230705-video-desc">{bv.description.string_value}</div> : []}
+		</div>
+	</div>;
+};
+
 let Poll = (props: {card: any}) => {
 	let card = props.card;
 	let labels = [];
@@ -574,7 +603,12 @@ let Tweet = (props: TweetProps) => {
 		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer} showReplyingTo={props.showReplyingTo}/>);
 	if (t.card) {
 		let n = t.card.name;
-		if (n == "poll2choice_text_only" ||
+		if (n == "player")
+			embeds.push(<SmallVideoEmbed card={t.card}/>);
+		else if (n == "summary")
+			embeds.push(<SmallVideoEmbed card={t.card}/>);
+		else if (
+			n == "poll2choice_text_only" ||
 			n == "poll3choice_text_only" ||
 			n == "poll4choice_text_only")
 			embeds.push(<Poll card={t.card}/>);

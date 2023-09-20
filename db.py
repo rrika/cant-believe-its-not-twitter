@@ -707,7 +707,17 @@ class DB:
 			return
 
 		user = tweet["core"]["user_results"]["result"]
+		card = tweet.pop("card", None)
 		legacy = tweet["legacy"]
+		if card:
+			card = card["legacy"]
+			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
+				"poll3choice_text_only", "poll4choice_text_only", "unified_card") or card["name"].endswith(":live_event"), (tweet, card, card["name"])
+			card["binding_values"] = {
+				keyvalue["key"]: keyvalue["value"]
+				for keyvalue in card["binding_values"]
+			}
+			legacy["card"] = card
 
 		# retweets
 		rt = legacy.pop("retweeted_status_result", None)

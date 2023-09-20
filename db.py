@@ -119,6 +119,11 @@ def decode_twimg(orig_url):
 		assert m, url.path
 		default_size = None # won't load without size
 
+	elif url.path.startswith("/ad_img/"):
+		m = re.fullmatch(r"(/ad_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
+		assert m, url.path
+		default_size = None # won't load without size
+
 	else:
 		assert False, orig_url
 

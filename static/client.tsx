@@ -624,12 +624,17 @@ let Tweet = (props: TweetProps) => {
 		{t.context_icon ?
 		<div class="t20230403-tweet-split t20230705-tweet-context">
 			<div class="t20230403-avatar-column">
-				{ t.context_icon == "retweet"
-				? <svg class="t20230706-context-icon" viewBox="0 0 24 24" aria-hidden="true"><g><path d="M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z"></path></g></svg>
-				: <span>{t.context_icon}</span>}
+				{
+				t.context_icon == "retweet" ? <svg class="t20230706-context-icon" viewBox="0 0 24 24" aria-hidden="true"><g><path d="M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z"></path></g></svg> :
+				t.context_icon == "pin" ? <svg class="t20230706-context-icon" viewBox="0 0 24 24" aria-hidden="true"><g><path d="M7 4.5C7 3.12 8.12 2 9.5 2h5C15.88 2 17 3.12 17 4.5v5.26L20.12 16H13v5l-1 2-1-2v-5H3.88L7 9.76V4.5z"></path></g></svg> :
+				<span>{t.context_icon}</span>
+				}
 			</div>
-			<div class="t20230403-main-column">
-				{t.context_user} Retweeted
+			<div class="t20230403-main-column">{
+				t.context_icon == "retweet" ? t.context_user + " Retweeted" :
+				t.context_icon == "pin" ? "Pinned Tweet" :
+				"Missing context description: " + t.context_icon
+			}
 			</div>
 		</div>
 		: []}

@@ -61,7 +61,16 @@ class ClientAPI:
 		tweet = self.db.tweets.get(twid, None)
 		if not tweet:
 			return (twid, None)
+		# if one pins their retweet of a different tweet does it show as pin or retweet? probably pin
+		if "user_id_str" in tweet:
+			user = self.db.profiles.get(int(tweet["user_id_str"]), {})
+		else:
+			user = None
+		is_pinned = user and str(twid) in user.get("pinned_tweet_ids_str", [])
 		tweet = self.get_original(tweet)
+		if is_pinned:
+			tweet = tweet.copy()
+			tweet["context_icon"] = "pin"
 		return (twid, self.patch(tweet))
 
 	def home_view(self, uid):

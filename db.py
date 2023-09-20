@@ -415,9 +415,11 @@ class DB:
 	# queries
 
 	def get_user_tweets(self, uid):
-		return [twid for twid in self.by_user.get(uid, []) if
+		pinned_tweet = [int(twid_str) for twid_str in self.profiles.get(uid, {}).get("pinned_tweet_ids_str", [])]
+		regular_tweets = [twid for twid in self.by_user.get(uid, []) if
 			"in_reply_to_status_id_str" not in self.tweets.get(twid, {})
 		]
+		return pinned_tweet + regular_tweets
 
 	def get_user_with_replies(self, uid):
 		return self.by_user.get(uid, [])
@@ -814,7 +816,11 @@ class DB:
 			elif t == "TimelineShowAlert":
 				pass
 			elif t == "TimelinePinEntry":
-				pass
+				entry = i["entry"]
+				it = self.add_timeline_add_entry(entry["content"], entry.get("entryId", None), cursors)
+				if it:
+					it = (int(entry["sortIndex"]),) + it
+				layout.append(it)
 			elif t == "TimelineReplaceEntry":
 				pass # todo
 			elif t == "TimelineAddToModule":

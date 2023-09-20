@@ -388,6 +388,12 @@ let Tweet = (props) => {
     }
     if (t.quoted_status)
         embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer, showReplyingTo: props.showReplyingTo }));
+    if (t.card) {
+        let n = t.card.name;
+        embeds.push(h("div", { class: "t20230624-embed-rounded-corners t20230403-contents" },
+            "Unsupported card type ",
+            n));
+    }
     let focusClass = props.focus
         ? "t20230403-tweet-focused"
         : "t20230403-tweet-unfocused";

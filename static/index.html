@@ -797,6 +797,67 @@
 			margin: 0;
 			align-items: start;
 		}
+		.theme-light .t20230920-poll {
+			color: rgb(15, 20, 25);
+		}
+		.theme-dim .t20230920-poll {
+			color: rgb(247, 249, 249);
+		}
+		.t20230920-poll-options {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+		.t20230920-poll-option {
+			height: 32px;
+			position: relative;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.t20230920-poll-bar {
+			position: absolute;
+			height: 100%;
+			border-radius: 4px;
+		}
+		.t20230920-poll-option > span {
+			position: relative; /* this raises the text above the transparent bar */
+		}
+		span.t20230920-poll-desc {
+			padding-left: 12px;
+			padding-right: 12px;
+			flex-shrink: 1;
+		}
+		span.t20230920-poll-perc {
+			padding-left: 12px;
+			flex-shrink: 0;
+		}
+		.theme-dim .t20230920-poll-inactive > .t20230920-poll-bar {
+			background-color: rgb(66, 83, 100);
+		}
+		.theme-light .t20230920-poll-inactive > .t20230920-poll-bar {
+			background-color: rgb(207, 217, 222);
+		}
+		.t20230920-poll-active > .t20230920-poll-bar {
+			background-color: rgba(29, 155, 240, 0.58);
+		}
+		.t20230920-poll-active {
+			font-weight: 700;
+		}
+		.t20230920-poll-summary {
+			margin-top: 12px;
+			line-height: 20px;
+		}
+		.theme-light .t20230920-poll-summary {
+			color: rgb(83, 100, 113);
+		}
+		.theme-dim .t20230920-poll-summary {
+			color: rgb(139, 152, 165);
+		}
+		.t20230920-poll-punctuation {
+			padding-left: 4px;
+			padding-right: 4px;
+		}
 		.modal-overlay {
 			position: absolute;
 			z-index: 2; /* must be >= to timeline header z-index */

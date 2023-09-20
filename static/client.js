@@ -129,6 +129,41 @@ let MediaGrid = (props) => {
                                     h("div", { class: "t20230701-media-vdiv" }, [items[0], items[1]]),
                                     h("div", { class: "t20230701-media-vdiv" }, [items[2], items[3]]))));
 };
+let Poll = (props) => {
+    let card = props.card;
+    let labels = [];
+    let counts = [];
+    labels.push(card.binding_values.choice1_label.string_value);
+    labels.push(card.binding_values.choice2_label.string_value);
+    counts.push(parseInt(card.binding_values.choice1_count.string_value));
+    counts.push(parseInt(card.binding_values.choice2_count.string_value));
+    if (card.name != "poll2choice_text_only") {
+        labels.push(card.binding_values.choice3_label.string_value);
+        counts.push(parseInt(card.binding_values.choice3_count.string_value));
+        if (card.name != "poll3choice_text_only") {
+            labels.push(card.binding_values.choice4_label.string_value);
+            counts.push(parseInt(card.binding_values.choice4_count.string_value));
+        }
+    }
+    let sum = 0, max = 0;
+    for (let count of counts) {
+        sum += count;
+        max = count > max ? count : max;
+    }
+    let percentages = counts.map((v) => (100 * v / sum).toFixed(1) + "%");
+    return h("div", { class: "t20230920-poll" },
+        h("div", { class: "t20230920-poll-options" }, labels.map((label, i) => h("div", { class: "t20230920-poll-option t20230920-poll-" + (counts[i] == max ? "active" : "inactive") },
+            h("div", { class: "t20230920-poll-bar", style: `width: ${percentages[i]};` }),
+            h("span", { class: "t20230920-poll-desc" }, label),
+            h("span", { class: "t20230920-poll-perc" }, percentages[i])))),
+        h("div", { class: "t20230920-poll-summary" },
+            h("span", null,
+                h("span", null,
+                    sum,
+                    " votes")),
+            h("span", { class: "t20230920-poll-punctuation" }, "\u00B7"),
+            h("span", null, "Final results")));
+};
 let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick }); /*todo: proper escape*/
 let dateFormat = (datestr) => {
     let now = new Date();
@@ -390,9 +425,14 @@ let Tweet = (props) => {
         embeds.push(h(QuotedTweet, { t: t.quoted_status, u: t.quoted_status.user, showMediaViewer: props.showMediaViewer, showReplyingTo: props.showReplyingTo }));
     if (t.card) {
         let n = t.card.name;
-        embeds.push(h("div", { class: "t20230624-embed-rounded-corners t20230403-contents" },
-            "Unsupported card type ",
-            n));
+        if (n == "poll2choice_text_only" ||
+            n == "poll3choice_text_only" ||
+            n == "poll4choice_text_only")
+            embeds.push(h(Poll, { card: t.card }));
+        else
+            embeds.push(h("div", { class: "t20230624-embed-rounded-corners t20230403-contents" },
+                "Unsupported card type ",
+                n));
     }
     let focusClass = props.focus
         ? "t20230403-tweet-focused"

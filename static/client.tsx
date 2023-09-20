@@ -256,6 +256,42 @@ let MediaGrid = (props: {items: VNode<any>[]}) => {
 	</div>
 };
 
+let Poll = (props: {card: any}) => {
+	let card = props.card;
+	let labels = [];
+	let counts = [];
+	labels.push(card.binding_values.choice1_label.string_value);
+	labels.push(card.binding_values.choice2_label.string_value);
+	counts.push(parseInt(card.binding_values.choice1_count.string_value));
+	counts.push(parseInt(card.binding_values.choice2_count.string_value));
+	if (card.name != "poll2choice_text_only") {
+		labels.push(card.binding_values.choice3_label.string_value);
+		counts.push(parseInt(card.binding_values.choice3_count.string_value));
+		if (card.name != "poll3choice_text_only") {
+			labels.push(card.binding_values.choice4_label.string_value);
+			counts.push(parseInt(card.binding_values.choice4_count.string_value));
+		}
+	}
+	let sum = 0, max = 0;
+	for (let count of counts) {
+		sum += count;
+		max = count > max ? count : max;
+	}
+	let percentages = counts.map((v) => (100*v/sum).toFixed(1)+"%");
+	return <div class="t20230920-poll">
+		<div class="t20230920-poll-options">
+			{labels.map((label, i) =>
+				<div class={"t20230920-poll-option t20230920-poll-" + (counts[i] == max ? "active" : "inactive")}>
+					<div class="t20230920-poll-bar" style={`width: ${percentages[i]};`}></div>
+					<span class="t20230920-poll-desc">{label}</span>
+					<span class="t20230920-poll-perc">{percentages[i]}</span>
+				</div>
+			)}
+		</div>
+		<div class="t20230920-poll-summary"><span><span>{sum} votes</span></span><span class="t20230920-poll-punctuation">·</span><span>Final results</span></div>
+	</div>
+};
+
 let TweetImage = (props: {src: string, onClick?: JSX.MouseEventHandler<HTMLElement>}) =>
 	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}} onClick={props.onClick}></div>; /*todo: proper escape*/
 
@@ -538,7 +574,12 @@ let Tweet = (props: TweetProps) => {
 		embeds.push(<QuotedTweet t={t.quoted_status} u={t.quoted_status.user} showMediaViewer={props.showMediaViewer} showReplyingTo={props.showReplyingTo}/>);
 	if (t.card) {
 		let n = t.card.name;
-		embeds.push(<div class="t20230624-embed-rounded-corners t20230403-contents">Unsupported card type {n}</div>);
+		if (n == "poll2choice_text_only" ||
+			n == "poll3choice_text_only" ||
+			n == "poll4choice_text_only")
+			embeds.push(<Poll card={t.card}/>);
+		else
+			embeds.push(<div class="t20230624-embed-rounded-corners t20230403-contents">Unsupported card type {n}</div>);
 	}
 
 	let focusClass = props.focus

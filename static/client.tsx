@@ -535,6 +535,14 @@ let AnonymousTweet = (props: {t: TweetInfo}) => {
 	</div>;
 };
 
+let WithheldItem = (props: {message: string, action?: string, handler?: (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => void}) =>
+	<div class="t20230707-item">
+		<div class="t20230707-withheld">
+			<div class="t20230707-withheld-text">{props.message}</div>
+			{props.action ? <a class="t20230707-withheld-button" onClick={props.handler}><span>{props.action}</span></a> : []}
+		</div>
+	</div>
+
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
 	let p = props.u;

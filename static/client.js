@@ -375,6 +375,11 @@ let AnonymousTweet = (props) => {
                 h("div", { class: "t20230403-contents" },
                     h(TweetText, { tweet: props.t })))));
 };
+let WithheldItem = (props) => h("div", { class: "t20230707-item" },
+    h("div", { class: "t20230707-withheld" },
+        h("div", { class: "t20230707-withheld-text" }, props.message),
+        props.action ? h("a", { class: "t20230707-withheld-button", onClick: props.handler },
+            h("span", null, props.action)) : []));
 let Tweet = (props) => {
     let t = props.t;
     let p = props.u;

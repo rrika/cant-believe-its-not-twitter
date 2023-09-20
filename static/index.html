@@ -179,10 +179,10 @@
 		.t20230403-tweet-focused .t20230403-tweet-split {
 			margin-bottom: 4px;
 		}
-		.theme-light .t20230403-tweet {
+		.theme-light .t20230403-tweet, .theme-light .t20230707-item {
 			border-bottom: 1px solid rgb(239, 243, 244);
 		}
-		.theme-dim .t20230403-tweet {
+		.theme-dim .t20230403-tweet, .theme-dim .t20230707-item {
 			border-bottom: 1px solid rgb(56, 68, 77);
 		}
 		.t20230403-tweet-unfocused {
@@ -803,6 +803,58 @@
 			border-radius: 9999px;
 			background-color: rgb(29, 155, 240);
 			content: "";
+		}
+		.t20230707-item {
+			padding-top: 12px;
+			padding-left: 16px;
+			padding-right: 16px;
+			padding-bottom: 12px;
+		}
+		.t20230707-withheld {
+			padding-top: 12px;
+			padding-left: 4px;
+			padding-right: 4px;
+			padding-bottom: 12px;
+			border: 1px solid rgb(39, 51, 64);
+			border-radius: 16px;
+			background-color: rgb(30, 39, 50);
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.t20230707-withheld-text {
+			color: rgb(139, 152, 165);
+			margin-left: 12px;
+			margin-right: 12px;
+			font-size: 15px;
+			font-weight: 400;
+			line-height: 20px;
+		}
+		.t20230707-withheld-button {
+			color: rgb(239, 243, 244);
+			margin-top: -5px; /* twitter uses calc(-12px), why? */
+			margin-bottom: -5px;
+			padding-left: 12px;
+			padding-right: 12px;
+			border: 1px solid rgba(0, 0, 0, 0);
+			border-radius: 9999px;
+			font-size: 14px;
+			font-weight: 700;
+			line-height: 16px;
+			min-height: 32px; /* this shapes the border */
+			box-sizing: border-box;
+			user-select: none;
+
+			display: flex;
+			align-items: center; /* to center the label */
+			cursor: pointer;
+		}
+		.t20230707-withheld-button:hover {
+			background-color: rgba(239, 243, 244, 0.1);
+		}
+		.t20230707-withheld-button:active {
+			background-color: rgba(239, 243, 244, 0.2);
 		}
 		.t20230705-video {
 			display: flex;

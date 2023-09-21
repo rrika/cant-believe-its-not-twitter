@@ -189,11 +189,11 @@ let Poll = (props) => {
             h("span", null, "Final results")));
 };
 let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick }); /*todo: proper escape*/
+let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let dateFormat = (datestr) => {
     let now = new Date();
     let date = new Date(datestr);
     let deltaSec = (now.getTime() - date.getTime()) / 1000;
-    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     if (deltaSec < 60)
         return "now";
     if (deltaSec < 60 * 60)
@@ -203,6 +203,10 @@ let dateFormat = (datestr) => {
     if (now.getFullYear() != date.getFullYear())
         return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     return `${months[date.getMonth()]} ${date.getDate()}`;
+};
+let dateFormat2 = (datestr) => {
+    let date = new Date(datestr);
+    return `${date.getHours()}:${date.getMinutes()} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 let SimpleTweetText = (props) => {
     let tweet = props.tweet;
@@ -465,6 +469,7 @@ let Tweet = (props) => {
     let focusClass = props.focus
         ? "t20230403-tweet-focused"
         : "t20230403-tweet-unfocused";
+    let timestamp = props.t.created_at ? props.t.created_at : tweetIdToEpoch(props.t.id_str);
     return h("div", { class: "t20230403-tweet " + focusClass, tabIndex: 0, onClick: selectTweet },
         t.context_icon ?
             h("div", { class: "t20230403-tweet-split t20230705-tweet-context" },
@@ -507,7 +512,7 @@ let Tweet = (props) => {
                                 "@",
                                 props.u.screen_name),
                             h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
-                            h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))),
+                            h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet }, dateFormat(timestamp)),
                             h("span", { class: "t20230403-user-line-menu" })),
                         (props.showReplyingTo && t.in_reply_to_status_id_str) ?
                             h("div", { class: "t20230805-replying-to" },
@@ -523,6 +528,9 @@ let Tweet = (props) => {
             h("div", { class: "t20230403-contents" },
                 h(TweetText, { tweet: props.t })),
             embeds.length ? h("div", { class: "t20230624-embeds" }, embeds) : [],
+            h("div", { class: "t20230921-timestamp-below" },
+                h("a", { href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet },
+                    h("time", { dateTime: new Date(timestamp).toISOString() }, dateFormat2(timestamp)))),
             h(TweetActions, { t: props.t })) : []);
 };
 let QuotedTweet = (props) => {

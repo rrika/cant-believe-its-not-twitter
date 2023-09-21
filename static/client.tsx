@@ -324,12 +324,13 @@ let Poll = (props: {card: any}) => {
 let TweetImage = (props: {src: string, onClick?: JSX.MouseEventHandler<HTMLElement>}) =>
 	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}} onClick={props.onClick}></div>; /*todo: proper escape*/
 
+let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 let dateFormat = (datestr: string | number) => {
 	let now = new Date();
 	let date = new Date(datestr);
 	let deltaSec = (now.getTime() - date.getTime()) / 1000;
 
-	let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 	if (deltaSec < 60)
 		return "now";
@@ -341,6 +342,11 @@ let dateFormat = (datestr: string | number) => {
 	if (now.getFullYear() != date.getFullYear())
 		return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 	return `${months[date.getMonth()]} ${date.getDate()}`;
+};
+
+let dateFormat2 = (datestr: string | number) => {
+	let date = new Date(datestr);
+	return `${date.getHours()}:${date.getMinutes()} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
 let SimpleTweetText = (props: {tweet: TweetInfo}) => {
@@ -620,6 +626,8 @@ let Tweet = (props: TweetProps) => {
 		? "t20230403-tweet-focused"
 		: "t20230403-tweet-unfocused";
 
+	let timestamp = props.t.created_at ? props.t.created_at : tweetIdToEpoch(props.t.id_str);
+
 	return <div class={"t20230403-tweet "+focusClass} tabIndex={0} onClick={selectTweet}>
 		{t.context_icon ?
 		<div class="t20230403-tweet-split t20230705-tweet-context">
@@ -671,7 +679,7 @@ let Tweet = (props: TweetProps) => {
 					<a class="t20230403-user-line-handle" href={userPath} onClick={selectUser} tabIndex={-1}>@{props.u.screen_name}</a>
 					<span class="t20230403-user-line-punctuation">·</span>
 					<a class="t20230403-user-line-time" href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}>{
-						props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))}</a>
+						dateFormat(timestamp)}</a>
 					<span class="t20230403-user-line-menu"></span>
 				</div>
 				{(props.showReplyingTo && t.in_reply_to_status_id_str ) ?
@@ -685,6 +693,9 @@ let Tweet = (props: TweetProps) => {
 		{props.focus ? <>
 			<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
 			{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
+			<div class="t20230921-timestamp-below">
+				<a href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}><time dateTime={new Date(timestamp).toISOString()}>{dateFormat2(timestamp)}</time></a>
+			</div>
 			<TweetActions t={props.t}/>
 		</> : []}
 	</div>;

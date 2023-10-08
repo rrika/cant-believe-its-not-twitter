@@ -46,6 +46,10 @@ profile_banners_sizes = Sizes([ # aspect ratio 3:1
 	(4096, 4096, "")
 ])
 
+no_sizes = Sizes([
+	(None, None, None)
+])
+
 def decode_twimg(orig_url):
 	url = urlparse(orig_url)
 	if url.netloc == "abs.twimg.com":
@@ -123,6 +127,11 @@ def decode_twimg(orig_url):
 		m = re.fullmatch(r"(/ad_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
 		assert m, url.path
 		default_size = None # won't load without size
+
+	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png":
+		m = re.fullmatch(r"(/static/.*)", url.path)
+		sizes = no_sizes
+		default_size = None
 
 	else:
 		assert False, orig_url
@@ -718,7 +727,9 @@ class DB:
 		if card:
 			card = card["legacy"]
 			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
-				"poll3choice_text_only", "poll4choice_text_only", "unified_card") or card["name"].endswith(":live_event"), (tweet, card, card["name"])
+				"poll3choice_text_only", "poll4choice_text_only", "unified_card") or \
+				card["name"].endswith(":live_event") or \
+				card["name"].endswith(":audiospace"), (tweet, card, card["name"])
 			card["binding_values"] = {
 				keyvalue["key"]: keyvalue["value"]
 				for keyvalue in card["binding_values"]
@@ -994,6 +1005,10 @@ class DB:
 		elif path.endswith("/SearchTimeline"):
 			self.add_with_instructions(data["search_by_raw_query"]["search_timeline"]["timeline"])
 		elif path.endswith("/FavoriteTweet"):
+			pass
+		elif path.endswith("/UnfavoriteTweet"):
+			pass
+		elif path.endswith("/AudioSpaceById"):
 			pass
 		elif path.endswith("/CreateRetweet"):
 			pass # todo

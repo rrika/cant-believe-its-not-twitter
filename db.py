@@ -426,6 +426,31 @@ class DB:
 		for c in self.conversations.values():
 			c["messages"].sort(key=lambda m: -int(m.get("messageCreate", {}).get("id", 0)))
 
+		# generally all tweets in a conversation need to belong to the same circle
+		for twid, tweet in self.tweets.items():
+			if "circle" in tweet:
+				continue
+			if "conversation_id_str" in tweet:
+				ctwid = int(tweet["conversation_id_str"])
+				ctweet = self.tweets.get(ctwid, None)
+				if ctweet:
+					if "limited_actions" in ctweet and "limited_actions" not in tweet:
+						print("inferred that", twid, "must have limited actions")
+						tweet["limited_actions"] = ctweet["limited_actions"]
+					if "circle" in ctweet and "circle" not in tweet:
+						print("inferred that", twid, "must belong to", ctweet["circle"]["screen_name"]+"'s", "circle")
+						tweet["circle"] = ctweet["circle"]
+					if tweet.get("limited_actions", None) == "limit_trusted_friends_tweet" and "circle" not in ctweet:
+						# the circle is generally determined by OP
+						if "user_id_str" in ctweet:
+							user = self.profiles.get(int(ctweet["user_id_str"]), None)
+							if user:
+								tweet["circle"] = ctweet["circle"] = {
+									"screen_name": user["screen_name"],
+									"user": user["name"]
+								}
+								print("inferred that", twid, "must belong to", user["screen_name"]+"'s", "circle")
+
 	# queries
 
 	def get_user_tweets(self, uid):
@@ -767,8 +792,15 @@ class DB:
 			return user["timeline_v2"]
 
 	def add_tweet(self, tweet):
+		heuristically_circle_tweet = False
 		tn = tweet.get("__typename", None)
 		if tn == "TweetWithVisibilityResults":
+			assert frozenset(tweet.keys()) in {
+				frozenset({"__typename", "tweet", "limitedActionResults"}),
+				frozenset({"__typename", "tweet", "tweetInterstitial"}),
+				frozenset({"__typename", "tweet", "limitedActionResults", "tweetInterstitial"})
+			}, json.dumps(tweet)
+			heuristically_circle_tweet = "Circle" in json.dumps(tweet.get("limitedActionResults"))
 			tweet = tweet["tweet"]
 		elif tn == "TweetTombstone":
 			return
@@ -799,6 +831,32 @@ class DB:
 		quoted = tweet.get("quoted_status_result", None)
 		if quoted:
 			self.add_tweet(quoted["result"])
+
+		# circle tweets
+		if "trusted_friends_info_result" in tweet:
+			# one step of normalization: if limited_actions=limit_trusted_friends_tweet was suppressed, add it back
+			if "limited_actions" not in legacy:
+				legacy["limited_actions"] = "limit_trusted_friends_tweet"
+
+			# finally push trusted_friends_info_result down into legacy object, so it is stored in the db
+			trusted_friends = tweet["trusted_friends_info_result"]
+			assert trusted_friends["__typename"] == "ApiTrustedFriendsInfo"
+			assert set(trusted_friends.keys()) == {"__typename", "owner_results"}
+			trusted_friends = trusted_friends["owner_results"]
+			assert set(trusted_friends.keys()) == {"result"}
+			trusted_friends = trusted_friends["result"]
+			assert trusted_friends["__typename"] == "User"
+			assert set(trusted_friends.keys()) == {"__typename", "legacy"}
+			trusted_friends = trusted_friends["legacy"]
+			assert set(trusted_friends.keys()) == {"screen_name", "name"}
+
+			assert "circle" not in legacy, "overwriting something"
+			legacy["circle"] = trusted_friends
+
+		elif legacy.get("limited_actions") != "limit_trusted_friends_tweet" and heuristically_circle_tweet:
+			# close call
+			print("no machine readable way to tell that", legacy["id_str"], "was a circle tweet")
+			legacy["limited_actions"] = "limit_trusted_friends_tweet"
 
 		# finish
 		self.add_user(user)

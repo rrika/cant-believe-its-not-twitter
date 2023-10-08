@@ -82,6 +82,7 @@ type TweetInfo = {
 	in_reply_to_screen_name?: string,
 	in_reply_to_status_id_str?: string,
 	in_reply_to_user_id_str?: string,
+	limited_actions? : string,
 
 	bookmarkers?: string[],
 	favoriters?: string[],
@@ -89,10 +90,14 @@ type TweetInfo = {
 
 	card?: any,
 	line?: boolean,
-	quoted_status?: TweetInfo
+	quoted_status?: TweetInfo,
 	context_icon?: string,
-	context_user?: string
-	context_user_protected?: boolean | null
+	context_user?: string,
+	context_user_protected?: boolean | null,
+	circle?: {
+		screen_name: string,
+		name: string
+	}
 };
 
 type HistogramData = {
@@ -569,6 +574,17 @@ let WithheldItem = (props: {message: string, action?: string, handler?: (e: JSX.
 		</div>
 	</div>
 
+let VisibilityNote = (props: {whoseCircle: string, box: boolean, learnMore: boolean}) =>
+	<div class="t20230818-visibility">
+		<div class={(props.box ? "t20230818-visibility-circle-box " : "") + "t20230818-visibility-circle"}>
+			<div><svg viewBox="0 0 24 24" aria-hidden="true" class="r-jwli3a r-4qtqp9 r-yyyyoo r-tbmifm r-dnmrzs r-bnwqim r-1plcrui r-lrvibr r-16eto9q"><g><path d="M14 6c0 2.21-1.791 4-4 4S6 8.21 6 6s1.791-4 4-4 4 1.79 4 4zm-4 5c-2.352 0-4.373.85-5.863 2.44-1.477 1.58-2.366 3.8-2.632 6.46l-.11 1.1h17.21l-.11-1.1c-.266-2.66-1.155-4.88-2.632-6.46C14.373 11.85 12.352 11 10 11zm13.759-3.83c-.355-.69-1.059-1.13-1.84-1.17-.66-.03-1.347.22-1.918.79-.573-.57-1.259-.82-1.92-.79-.781.04-1.485.48-1.84 1.17-.358.71-.339 1.62.206 2.59.541.97 1.601 1.99 3.352 2.98l.202.12.201-.12c1.751-.99 2.811-2.01 3.352-2.98.544-.97.563-1.88.205-2.59z"></path></g></svg></div>
+			<div>
+				<span>Only people in @{props.whoseCircle}’s Twitter Circle can see this Tweet</span>
+				{props.learnMore ? <a href="/">Learn more</a> : []}
+			</div>
+		</div>
+	</div>;
+
 let Tweet = (props: TweetProps) => {
 	let t = props.t;
 	let p = props.u;
@@ -720,6 +736,7 @@ let Tweet = (props: TweetProps) => {
 					<div class="t20230805-replying-to">Replying to <a href={"/profile/"+t.in_reply_to_user_id_str}>@{t.in_reply_to_screen_name}</a></div> : []}
 				<div class="t20230403-contents"><TweetText tweet={props.t}/></div>
 				{embeds.length ? <div class="t20230624-embeds">{embeds}</div> : []}
+				{props.t.limited_actions === "limit_trusted_friends_tweet" ? <VisibilityNote whoseCircle={props.t.circle ? props.t.circle.screen_name : "unknown"} box={true} learnMore={false}/> : []}
 				<TweetActions t={props.t}/>
 				</>}
 			</div>
@@ -731,6 +748,7 @@ let Tweet = (props: TweetProps) => {
 				<a href={`https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`} onClick={dumpTweet}><time dateTime={new Date(timestamp).toISOString()}>{dateFormat2(timestamp)}</time></a>
 			</div>
 			<TweetActions t={props.t}/>
+			{props.t.limited_actions === "limit_trusted_friends_tweet" ? <VisibilityNote whoseCircle={props.t.circle ? props.t.circle.screen_name : "unknown"} box={true} learnMore={true}/> : []}
 		</> : []}
 	</div>;
 };

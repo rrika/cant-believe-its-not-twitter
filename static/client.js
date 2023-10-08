@@ -392,6 +392,18 @@ let WithheldItem = (props) => h("div", { class: "t20230707-item" },
         h("div", { class: "t20230707-withheld-text" }, props.message),
         props.action ? h("a", { class: "t20230707-withheld-button", onClick: props.handler },
             h("span", null, props.action)) : []));
+let VisibilityNote = (props) => h("div", { class: "t20230818-visibility" },
+    h("div", { class: (props.box ? "t20230818-visibility-circle-box " : "") + "t20230818-visibility-circle" },
+        h("div", null,
+            h("svg", { viewBox: "0 0 24 24", "aria-hidden": "true", class: "r-jwli3a r-4qtqp9 r-yyyyoo r-tbmifm r-dnmrzs r-bnwqim r-1plcrui r-lrvibr r-16eto9q" },
+                h("g", null,
+                    h("path", { d: "M14 6c0 2.21-1.791 4-4 4S6 8.21 6 6s1.791-4 4-4 4 1.79 4 4zm-4 5c-2.352 0-4.373.85-5.863 2.44-1.477 1.58-2.366 3.8-2.632 6.46l-.11 1.1h17.21l-.11-1.1c-.266-2.66-1.155-4.88-2.632-6.46C14.373 11.85 12.352 11 10 11zm13.759-3.83c-.355-.69-1.059-1.13-1.84-1.17-.66-.03-1.347.22-1.918.79-.573-.57-1.259-.82-1.92-.79-.781.04-1.485.48-1.84 1.17-.358.71-.339 1.62.206 2.59.541.97 1.601 1.99 3.352 2.98l.202.12.201-.12c1.751-.99 2.811-2.01 3.352-2.98.544-.97.563-1.88.205-2.59z" })))),
+        h("div", null,
+            h("span", null,
+                "Only people in @",
+                props.whoseCircle,
+                "\u2019s Twitter Circle can see this Tweet"),
+            props.learnMore ? h("a", { href: "/" }, "Learn more") : [])));
 let Tweet = (props) => {
     let t = props.t;
     let p = props.u;
@@ -540,6 +552,7 @@ let Tweet = (props) => {
                         h("div", { class: "t20230403-contents" },
                             h(TweetText, { tweet: props.t })),
                         embeds.length ? h("div", { class: "t20230624-embeds" }, embeds) : [],
+                        props.t.limited_actions === "limit_trusted_friends_tweet" ? h(VisibilityNote, { whoseCircle: props.t.circle ? props.t.circle.screen_name : "unknown", box: true, learnMore: false }) : [],
                         h(TweetActions, { t: props.t })))),
         props.focus ? h(Fragment, null,
             h("div", { class: "t20230403-contents" },
@@ -548,7 +561,8 @@ let Tweet = (props) => {
             h("div", { class: "t20230921-timestamp-below" },
                 h("a", { href: `https://twitter.com/${props.u.screen_name}/status/${props.t.id_str}`, onClick: dumpTweet },
                     h("time", { dateTime: new Date(timestamp).toISOString() }, dateFormat2(timestamp)))),
-            h(TweetActions, { t: props.t })) : []);
+            h(TweetActions, { t: props.t }),
+            props.t.limited_actions === "limit_trusted_friends_tweet" ? h(VisibilityNote, { whoseCircle: props.t.circle ? props.t.circle.screen_name : "unknown", box: true, learnMore: true }) : []) : []);
 };
 class ShyTweet extends Component {
     constructor() {

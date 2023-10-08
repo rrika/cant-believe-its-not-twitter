@@ -347,6 +347,7 @@ class DB:
 		self.bookmarks_sorted = {}
 		self.interactions_sorted = {}
 		self.observers = set()
+		self.conversations = {}
 
 		# context
 		self.time = None
@@ -420,6 +421,10 @@ class DB:
 		for tids in self.interactions_sorted.values():
 			tids[:] = set(tids)
 			tids.sort(key=lambda twid: -twid)
+
+		# sort dm messages
+		for c in self.conversations.values():
+			c["messages"].sort(key=lambda m: -int(m.get("messageCreate", {}).get("id", 0)))
 
 	# queries
 
@@ -577,7 +582,54 @@ class DB:
 
 		# no merging happening yet
 		conversations = self.load_with_prefix(fs, "direct-messages.js", "window.YTD.direct_messages.part0 = ")
-		self.conversations = [c["dmConversation"] for c in conversations]
+		conversations += self.load_with_prefix(fs, "direct-messages-group.js", "window.YTD.direct_messages_group.part0 = ")
+
+		if False: # validate format
+			mckeys_g = set("reactions urls text mediaUrls senderId id createdAt".split(" "))
+			mckeys = mckeys_g | {"recipientId"}
+
+			for c in conversations:
+				c = c["dmConversation"]
+				for m in c["messages"]:
+					assert len(m) == 1, m
+					mty, = m.keys()
+
+					if mty == "messageCreate":
+						mc = m["messageCreate"]
+						is_group = "-" not in c["conversationId"]
+						assert set(mc.keys()) == (mckeys_g if is_group else mckeys), mc
+
+					elif mty == "joinConversation":
+						mjc = m["joinConversation"]
+						assert set(mjc.keys()) == {'initiatingUserId', 'participantsSnapshot', 'createdAt'}
+
+					elif mty == "participantsLeave":
+						mpl = m["participantsLeave"]
+						assert set(mpl.keys()) == {'userIds', 'createdAt'}
+
+					else:
+						assert False, m
+
+		for c in conversations:
+			# sometimes a conversation is split over multiple entries in the array in the json
+			# but the conversationId remains the same
+			c = c["dmConversation"]
+			cid = c["conversationId"]
+			ic = self.conversations.setdefault(cid, {
+				"messages": [],
+				"message_ids": set()
+			})
+			icm = ic["messages"]
+			icmi = ic["message_ids"]
+			for message in c["messages"]:
+				try:
+					mid = int(message["messageCreate"]["id"])
+				except:
+					continue
+				if mid in icmi:
+					continue
+				icm.append(message)
+				icmi.add(mid)
 
 		if tweets_media:
 			self.media.add_from_archive(fs, tweets_media)

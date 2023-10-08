@@ -135,23 +135,31 @@ class ClientAPI:
 
 	def conversations(self):
 		r = []
-		for c in self.db.conversations:
-			cid = c["conversationId"]
-			a, b = cid.split("-")
-			if int(a) not in db.observers and int(b) in db.observers:
-				a, b = b, a
-			r.append([cid, self.get_profile(int(a)), self.get_profile(int(b)), c["messages"][0]])
+		for cid, c in self.db.conversations.items():
+			if "-" in cid:
+				a, b = cid.split("-")
+				if int(a) not in db.observers and int(b) in db.observers:
+					a, b = b, a
+				r.append([cid, self.get_profile(int(a)), self.get_profile(int(b)), c["messages"][0]])
+			else:
+				r.append([cid, None, None, c["messages"][0]])
 		return r
 
 	def conversation(self, cid):
-		cs = {c["conversationId"]: c for c in self.db.conversations}
-		if cid not in cs:
+		if cid not in self.db.conversations:
 			return None
-		c = cs[cid]
-		a, b = cid.split("-")
-		if int(a) not in db.observers and int(b) in db.observers:
-			a, b = b, a
-		return [c, self.get_profile(int(a)), self.get_profile(int(b))]
+		c = self.db.conversations[cid]
+		c = {
+			"conversationId": cid,
+			"messages": c["messages"]
+		}
+		if "-" in cid:
+			a, b = cid.split("-")
+			if int(a) not in db.observers and int(b) in db.observers:
+				a, b = b, a
+			return [c, self.get_profile(int(a)), self.get_profile(int(b))]
+		else:
+			return [c, None, None]
 
 ca = ClientAPI(db)
 

@@ -53,7 +53,29 @@ no_sizes = Sizes([
 def decode_twimg(orig_url):
 	url = urlparse(orig_url)
 	if url.netloc == "abs.twimg.com":
-		base = url.netloc + "/" + url.path
+		assert url.path == "" or url.path[0] == "/"
+		base = url.netloc + url.path
+		return base, (None, None), (None, None)
+
+	elif url.netloc == "video.twimg.com":
+		if url.path.startswith("/ext_tw_video/"):
+			m = re.fullmatch(r"/ext_tw_video/[0-9]+/p(?:r|u)/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			assert m, url.path
+			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
+
+		elif url.path.startswith("/tweet_video/"):
+			m = re.fullmatch(r"/tweet_video/([A-Za-z0-9_-]+)\.(mp4)", url.path)
+			assert m, url.path
+			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
+
+		elif url.path.startswith("/amplify_video/"):
+			m = re.fullmatch(r"/amplify_video/[0-9]+/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			assert m, url.path
+			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
+
+		else:
+			assert False, url.path
+
 		return base, (None, None), (None, None)
 
 	assert url.netloc in ("pbs.twimg.com", ""), orig_url
@@ -201,7 +223,10 @@ class MediaStore:
 			if not m:
 				print("what about", media_fname)
 				continue
-			cache_key = "/media/"+m.group(2)
+			if m.group(3) == "mp4":
+				cache_key = "video.twimg.com/" + m.group(2) + ".mp4"
+			else:
+				cache_key = "/media/"+m.group(2)
 			imageset = self.media_by_url.setdefault(cache_key, ImageSet())
 			fmt = m.group(3)
 			path = tweets_media+"/"+media_fname
@@ -231,27 +256,51 @@ class MediaStore:
 
 # replace urls in tweet/user objects
 
+def urlmap_list(urlmap, f, l):
+	l2 = []
+	any_patched = False
+	for m in l:
+		m2 = f(urlmap, m)
+		if m2:
+			l2.append(m2)
+			any_patched = True
+		else:
+			l2.append(m)
+	if any_patched:
+		return l2
+
+def urlmap_variant(urlmap, variant):
+	if "url" in variant:
+		url = variant["url"]
+		url2 = urlmap(url)
+		if url != url2:
+			v = variant.copy()
+			v["url"] = url2
+			return v
+
+def urlmap_variants(urlmap, variants):
+	return urlmap_list(urlmap, urlmap_variant, variants)
+
 def urlmap_media(urlmap, media):
+	m = None
 	if "media_url_https" in media:
 		url = media["media_url_https"]
 		url2 = urlmap(url)
 		if url != url2:
 			m = media.copy()
 			m["media_url_https"] = url2
-			return m
+	if "video_info" in media and "variants" in media["video_info"]:
+		v2 = urlmap_variants(urlmap, media["video_info"]["variants"])
+		if v2:
+			vi = media["video_info"].copy()
+			vi["variants"] = v2
+			if m is None:
+				m = media.copy()
+			m["video_info"] = vi
+	return m
 
 def urlmap_media_list(urlmap, media_list):
-	l = []
-	any_patched = False
-	for m in media_list:
-		m2 = urlmap_media(urlmap, m)
-		if m2:
-			l.append(m2)
-			any_patched = True
-		else:
-			l.append(m)
-	if any_patched:
-		return l
+	return urlmap_list(urlmap, urlmap_media, media_list)
 
 def urlmap_entities(urlmap, entities):
 	if "media" in entities:

@@ -38,8 +38,14 @@ type Sizes2020 = {
 	thumb: SizeInfo
 };
 
+type VideoInfo = {
+	variants: {content_type: string, url: string}[]
+};
+
 type MediaEntity = {
 	ext_alt_text?: string,
+	type: string,
+	video_info: VideoInfo,
 	indices: [string, string],
 	original_info?: { // doesn't exist in archives for example
 		width: number,
@@ -76,6 +82,7 @@ type TweetInfo = {
 	reply_count: string,
 	id_str: string,
 	entities?: Entities,
+	extended_entities?: Entities,
 	user: LegacyProfile,
 	user_id_str: string,
 	created_at: string,
@@ -358,6 +365,19 @@ let TweetImage = (props: {
 	style={{"background-image": `url('${props.src}')`}}  /*todo: proper escape*/
 	onClick={props.onClick} title={props.title}></div>;
 
+let TweetVideo = (props: {entity: MediaEntity}) => {
+	for (let variant of props.entity.video_info.variants) {
+		if (variant.content_type == "video/mp4" && variant.url != null)
+			return <video
+				src={variant.url}
+				poster={props.entity.media_url_https}
+				controls={true}
+				preload="none"
+				loop={props.entity.type == "animated_gif"}
+			/>;
+	}
+};
+
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 let dateFormat = (datestr: string | number) => {
@@ -620,14 +640,19 @@ let Tweet = (props: TweetProps) => {
 	let userPath = "/profile/"+user_id_str;
 
 	let embeds = [];
-	if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
-		let media = props.t.entities.media;
-		let items = media.map((media: MediaEntity) => <TweetImage src={media.media_url_https + "?name=small"} onClick={
-			(e: JSX.TargetedMouseEvent<HTMLElement>) => {
-				e.preventDefault();
-				props.showMediaViewer([media.media_url_https]);
-			}
-		} title={media.ext_alt_text}/>);
+	// videos appear as type="photo" in entities, and type="video" in extended_entities
+	let entities = props.t.extended_entities || props.t.entities;
+	if (entities !== undefined && entities.media !== undefined) {
+		let media = entities.media;
+		let items = media.map((media: MediaEntity) =>
+			(media.type == "video" || media.type == "animated_gif")
+			? <TweetVideo entity={media}/>
+			: <TweetImage src={media.media_url_https + "?name=small"} title={media.ext_alt_text} onClick={
+				(e: JSX.TargetedMouseEvent<HTMLElement>) => {
+					e.preventDefault();
+					props.showMediaViewer([media.media_url_https]);
+				}
+			}/>);
 		if (items.length != 1) {
 			embeds.push(<MediaGrid items={items}/>);
 		} else {

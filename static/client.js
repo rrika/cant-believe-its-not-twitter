@@ -200,6 +200,12 @@ let Poll = (props) => {
             h("span", null, "Final results")));
 };
 let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick, title: props.title });
+let TweetVideo = (props) => {
+    for (let variant of props.entity.video_info.variants) {
+        if (variant.content_type == "video/mp4" && variant.url != null)
+            return h("video", { src: variant.url, poster: props.entity.media_url_https, controls: true, preload: "none", loop: props.entity.type == "animated_gif" });
+    }
+};
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let dateFormat = (datestr) => {
     let now = new Date();
@@ -430,12 +436,16 @@ let Tweet = (props) => {
     // let userPath = "/"+props.u.screen_name;
     let userPath = "/profile/" + user_id_str;
     let embeds = [];
-    if (props.t.entities !== undefined && props.t.entities.media !== undefined) {
-        let media = props.t.entities.media;
-        let items = media.map((media) => h(TweetImage, { src: media.media_url_https + "?name=small", onClick: (e) => {
-                e.preventDefault();
-                props.showMediaViewer([media.media_url_https]);
-            }, title: media.ext_alt_text }));
+    // videos appear as type="photo" in entities, and type="video" in extended_entities
+    let entities = props.t.extended_entities || props.t.entities;
+    if (entities !== undefined && entities.media !== undefined) {
+        let media = entities.media;
+        let items = media.map((media) => (media.type == "video" || media.type == "animated_gif")
+            ? h(TweetVideo, { entity: media })
+            : h(TweetImage, { src: media.media_url_https + "?name=small", title: media.ext_alt_text, onClick: (e) => {
+                    e.preventDefault();
+                    props.showMediaViewer([media.media_url_https]);
+                } }));
         if (items.length != 1) {
             embeds.push(h(MediaGrid, { items: items }));
         }

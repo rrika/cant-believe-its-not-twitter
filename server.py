@@ -4,6 +4,7 @@ import os.path, time, datetime, sys
 server_path = os.path.dirname(__file__)
 sys.path.append(server_path + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
+from pprint import pprint
 
 use_twitter_cdn_for_images = False
 
@@ -14,7 +15,8 @@ class ClientAPI:
 	# tweets
 
 	def urlmap(self, url):
-		if self.db.media.lookup(url):
+		item, cacheable = self.db.media.lookup(url)
+		if item:
 			return "/media" + url[7:] # /media/pbs.twitter.com/...
 		if use_twitter_cdn_for_images:
 			return url
@@ -29,6 +31,10 @@ class ClientAPI:
 		if "entities" in tweet:
 			entities = urlmap_entities(self.urlmap, tweet["entities"])
 
+		extended_entities = None
+		if "extended_entities" in tweet:
+			extended_entities = urlmap_entities(self.urlmap, tweet["extended_entities"])
+
 		quoted_status = None
 		if "quoted_status_id_str" in tweet:
 			_, quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
@@ -38,6 +44,8 @@ class ClientAPI:
 			tweet["user"] = user
 		if entities:
 			tweet["entities"] = entities
+		if extended_entities:
+			tweet["extended_entities"] = extended_entities
 		if quoted_status:
 			tweet["quoted_status"] = quoted_status
 		del tweet["original_id"]
@@ -73,7 +81,12 @@ class ClientAPI:
 		if is_pinned:
 			tweet = tweet.copy()
 			tweet["context_icon"] = "pin"
-		return (twid, self.patch(tweet))
+		try:
+			return (twid, self.patch(tweet))
+		except Exception as e:
+			print("while processing", twid)
+			pprint(tweet)
+			raise
 
 	def home_view(self, uid):
 		# this could be cached

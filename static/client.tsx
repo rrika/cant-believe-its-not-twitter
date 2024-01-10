@@ -165,6 +165,9 @@ class Logic {
 			api_call = i; // easy
 			focusTweetId = m[1];
 		}
+		else if ((m = i.match(/search$/)) !== null) {
+			api_call = "search";
+		}
 		else if ((m = i.match(/profile\/(\d+)$/)) !== null) {
 			api_call = `profile/${m[1]}`;
 			tab = 0;
@@ -1153,12 +1156,33 @@ class App extends Component<AppProps, AppState> {
 				let from = new Date(year, month-1);
 				let until = new Date(year, month);
 				let name = availableHistograms[this.state.histogramMode].name;
-				let q = `?from=${from.getTime()}&until=${until.getTime()}`;
-				if (name == 'ot') // this omission works out with the current implicit filtering modes
-					q += "&by=" + name;
+				let q;
+				if (false) {
+					q = `?from=${from.getTime()}&until=${until.getTime()}`;
+					if (name == 'ot') // this omission works out with the current implicit filtering modes
+						q += "&by=" + name;
+				} else {
+					let usp = new URLSearchParams(window.location.search);
+					usp.delete("by");
+					usp.set("from", ""+from.getTime());
+					usp.set("until", ""+until.getTime());
+					if (name == 'ot') // this omission works out with the current implicit filtering modes
+						usp.set("by", name);
+					q = "?"+usp.toString();
+				}
 				logic.navigate(window.location.pathname.slice(1), q);
 			};
+			let submitSearch = (ev) => {
+				ev.preventDefault();
+				let usp = new URLSearchParams();
+				usp.set("q", ev.target.q.value);
+				logic.navigate("search", "?"+usp.toString());
+			};
 			let sidebar = <Sidebar>
+				<h3>Search</h3>
+				<form action="/search" method="get" onSubmit={submitSearch}>
+				<input name="q" style={{width: "100%", boxSizing: "border-box"}} autocomplete="off"/>
+				</form>
 				<h3>Settings</h3>
 				<span>Set theme: </span>{themeLinks}<br/>
 				<a href="#" onClick={toggleHideProtectedAccounts}>{

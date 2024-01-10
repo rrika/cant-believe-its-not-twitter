@@ -485,6 +485,14 @@ class DB:
 	def get_user_bookmarks(self, uid):
 		return self.bookmarks_sorted.get(uid, [])
 
+	def search(self, query):
+		# naive implementation
+		words = query.split(" ")
+		return {
+			twid for twid, tweet in self.tweets.items()
+			if all(word in tweet.get("full_text", "") for word in words)
+		}
+
 	# twitter archives
 
 	def load_with_prefix(self, fs, fname, expected_prefix):

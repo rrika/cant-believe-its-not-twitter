@@ -109,6 +109,9 @@ class ClientAPI:
 		_, tweet = self.get_tweet(twid)
 		return [tweet]
 
+	def search(self, query):
+		return [self.get_tweet(twid) for twid in self.db.search(query)]
+
 	# users
 
 	def get_profile(self, uid):
@@ -327,6 +330,12 @@ def interactions(uid):
 		"tweets": ca.interactions_view(uid)
 	})
 
+@route('/api/search')
+def search():
+	return paginated_tweets({
+		"tweets": ca.search(request.query.q)
+	})
+
 @route('/api/thread/<twid:int>')
 def thread(twid):
 	return {
@@ -436,6 +445,7 @@ def favicon():
 @route('/everyone')
 @route('/thread/<twid:int>')
 @route('/home/<who>')
+@route('/search')
 @route('/profile/<who>')
 @route('/profile/<who>/with_replies')
 @route('/profile/<who>/media')

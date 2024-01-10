@@ -196,7 +196,7 @@ let Poll = (props) => {
             h("span", { class: "t20230920-poll-punctuation" }, "\u00B7"),
             h("span", null, "Final results")));
 };
-let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick }); /*todo: proper escape*/
+let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick, title: props.title });
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let dateFormat = (datestr) => {
     let now = new Date();
@@ -432,7 +432,7 @@ let Tweet = (props) => {
         let items = media.map((media) => h(TweetImage, { src: media.media_url_https + "?name=small", onClick: (e) => {
                 e.preventDefault();
                 props.showMediaViewer([media.media_url_https]);
-            } }));
+            }, title: media.ext_alt_text }));
         if (items.length != 1) {
             embeds.push(h(MediaGrid, { items: items }));
         }

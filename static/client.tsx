@@ -39,6 +39,7 @@ type Sizes2020 = {
 };
 
 type MediaEntity = {
+	ext_alt_text?: string,
 	indices: [string, string],
 	original_info?: { // doesn't exist in archives for example
 		width: number,
@@ -345,8 +346,14 @@ let Poll = (props: {card: any}) => {
 	</div>
 };
 
-let TweetImage = (props: {src: string, onClick?: JSX.MouseEventHandler<HTMLElement>}) =>
-	<div class="t20230624-image-div" style={{"background-image": `url('${props.src}')`}} onClick={props.onClick}></div>; /*todo: proper escape*/
+let TweetImage = (props: {
+	src: string,
+	onClick?: JSX.MouseEventHandler<HTMLElement>,
+	title?: string
+}) => <div
+	class="t20230624-image-div" 
+	style={{"background-image": `url('${props.src}')`}}  /*todo: proper escape*/
+	onClick={props.onClick} title={props.title}></div>;
 
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -617,7 +624,7 @@ let Tweet = (props: TweetProps) => {
 				e.preventDefault();
 				props.showMediaViewer([media.media_url_https]);
 			}
-		}/>);
+		} title={media.ext_alt_text}/>);
 		if (items.length != 1) {
 			embeds.push(<MediaGrid items={items}/>);
 		} else {

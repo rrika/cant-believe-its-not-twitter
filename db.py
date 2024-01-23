@@ -539,7 +539,10 @@ class DB:
 		words = query.split(" ")
 		return {
 			twid for twid, tweet in self.tweets.items()
+			# 1. match full-text
+			# 2. match media urls
 			if all(word in tweet.get("full_text", "") for word in words)
+			or any(query in media["media_url_https"] for media in tweet.get("extended_entities", {}).get("media", []))
 		}
 
 	# twitter archives

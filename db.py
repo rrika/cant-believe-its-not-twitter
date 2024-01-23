@@ -1188,6 +1188,8 @@ class DB:
 			pass # todo
 		elif path.endswith("/articleNudgeDomains"):
 			pass # todo
+		elif path.endswith("/useFetchProfileBlocks_profileExistsQuery"):
+			pass # todo
 		else:
 			assert False, path
 

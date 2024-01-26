@@ -1,4 +1,4 @@
-import json, os, base64, os.path, re, zipfile, mimetypes
+import sys, json, os, base64, os.path, re, zipfile, mimetypes
 import datetime
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
@@ -1193,7 +1193,7 @@ class DB:
 		else:
 			assert False, path
 
-	def load_api(self, item, context):
+	def load_api(self, fname, item, context):
 		url = context["url"]
 		path = urlparse(url).path
 
@@ -1257,38 +1257,69 @@ class DB:
 					"timeStamp": time.timestamp() * 1000,
 					"cookies": entry["request"]["cookies"]
 				}
-				self.load_api(item, context)
+				self.load_api(fname, item, context)
 
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")
 
-db = DB()
+# gather inputs
 
-try:
-	archive_paths = []
-	with open("exports.txt") as f:
-		archive_paths = [l.strip() for l in f.readlines()]
-finally:
-	pass
+paths = []
 
-for l in archive_paths:
-	if l and not l.startswith("#"):
-		print(l)
-		if l.endswith(".zip"):
-			db.load(zipfile.ZipFile(l))
+def add_file(path):
+	ext = os.path.splitext(path)[1]
+	if ext in (".zip", ".har"):
+		paths.append(path)
+
+def add_path(path):
+	if os.path.isdir(path):
+		is_archive = os.path.exists(os.path.join(path, "data")) or os.path.exists(os.path.join(path, "tweet.js"))
+		if is_archive:
+			paths.append(path)
 		else:
-			db.load(l)
+			for fname in os.listdir(path):
+				add_file(os.path.join(path, fname) if path != "." else fname)
+	else:
+		add_file(path)
 
-for fname in os.listdir("."):
-	if fname.endswith(".zip"):
-		print(fname)
-		db.load(zipfile.ZipFile(fname))
+def add_list(path):
+	try:
+		with open("exports.txt") as f:
+			lines = f.readlines()
+	except:
+		return
+
+	for l in lines:
+		l = l.strip()
+		if l and not l.startswith("#"):
+			add_path(l)
+
+if len(sys.argv) >= 2:
+	for arg in sys.argv[1:]:
+		add_path(arg)
+
+else:
+	add_list("exports.txt")
+	add_path(".")
 
 # archive data is broken for RTs so apply HAR later to overwrite that
-for fname in os.listdir("."):
-	if fname.endswith(".har"):
-		db.har.add(fname, skip_if_exists=True)
-		db.load_har(fname)
+paths.sort(key=lambda path: 1 if path.endswith(".har") else 0)
+
+# load inputs
+
+db = DB()
+
+for path in paths:
+	print(path)
+	if path.endswith(".har"):
+		db.har.add(path, skip_if_exists=True)
+		db.load_har(path)
+	elif path.endswith(".zip"):
+		db.load(zipfile.ZipFile(path))
+	else:
+		db.load(path)
+
+# post-processing
 
 db.sort_profiles()
 

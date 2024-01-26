@@ -1,4 +1,4 @@
-from db import db, urlmap_entities, urlmap_profile, OnDisk, InZip, InMemory
+from db import db, urlmap_entities, urlmap_profile, OnDisk, InZip, InMemory # db will process sys.argv
 
 import os.path, time, datetime, sys
 server_path = os.path.dirname(__file__)

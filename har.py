@@ -1,4 +1,6 @@
-import os, os.path, json, io, hashlib, base64
+import os, os.path, json, io, hashlib, base64, gzip, re
+try: import brotli
+except: print("warning: brotli-compressed data in warcs can't be decoded without brotli module")
 
 class OnDisk:
 	def __init__(self, path, mode="rb"):
@@ -27,6 +29,29 @@ class InMemory:
 		elif isinstance(data, bytes):
 			return io.BytesIO(data)
 
+class InWarc:
+	def __init__(self, f, offset, size, mode="rb", encoding=None, chunked=False):
+		self.f = f
+		self.offset = offset
+		self.size = size
+		self.mode = mode
+		self.encoding = encoding
+		self.chunked = chunked
+		assert mode in ("r", "rb")
+
+	def open(self):
+		if self.chunked:
+			raise Exception("chunking not supported")
+		self.f.seek(self.offset)
+		data = self.f.read(self.size)
+		if self.encoding == "gzip":
+			data = gzip.decompress(data)
+		elif self.encoding == "br":
+			data = brotli.decompress(data)
+		if self.mode == "r":
+			return io.BytesIO(data)
+		else:
+			return io.StringIO(data.decode("utf-8"))
 
 class HarStore:
 	def __init__(self, path):
@@ -118,3 +143,105 @@ class HarStore:
 
 		with open(lhar_path, "w") as f:
 			json.dump(har, f, indent=2)
+
+header_re = re.compile(rb"(.*): (.*)\r\n")
+
+def parse_warc(f, size=None):
+	"yields (headers, offset, length)"
+
+	if size is None:
+		size = os.fstat(f.fileno()).st_size
+	while line := f.readline():
+		assert line == b"WARC/1.0\r\n", line
+
+		# read headers until blank line
+		headers = []
+		length = None
+		while True:
+			header_line = f.readline()
+			if header_line == b"\r\n": break
+			m = header_re.match(header_line)
+			name = m.group(1)
+			value = m.group(2)
+			headers.append((name, value))
+			if name.lower() == b"content-length":
+				length = int(value)
+
+		# skip content bytes
+		offset = f.tell()
+		yield (headers, offset, length)
+		f.seek(offset + length)
+
+		# expect two blank lines
+		line = f.readline()
+		assert line == b"\r\n", line
+		line = f.readline()
+		assert line == b"\r\n", line
+
+def read_header_lines_limited(f, stop):
+	offset = f.tell()
+	while True:
+		line = f.readline()
+		if line == b"\r\n": # early stop on empty line
+			break
+		xo = offset + len(line)
+		if xo > stop:
+			yield line[:stop-offset]
+			break
+		elif xo <= stop:
+			yield line
+			if xo == stop:
+				break
+		offset = xo
+
+def read_warc(f, size=None, responses=None):
+	if responses is None:
+		responses = {}
+	order = []
+	for headers, offset, length in parse_warc(f, size):
+		h = {name.lower(): value for name, value in headers}
+		warc_type = h[b"warc-type"]
+		if warc_type == b"warcinfo":
+			continue
+		warc_record_id = h[b"warc-record-id"]
+		warc_date = h[b"warc-date"]
+		warc_target_uri = h[b"warc-target-uri"]
+		keep_headers = {
+			"warc-date": warc_date.decode("utf-8"),
+			"warc-target-uri": warc_target_uri.decode("utf-8"),
+		}
+		if warc_type == b"response":
+			response_headers = list(read_header_lines_limited(f, stop=offset+length))
+			payload_begin = f.tell()
+			encoding = None
+			mime = None
+			for h in response_headers:
+				if h.lower().startswith(b"content-encoding: "):
+					encoding = h[18:-2].decode("ascii") # HACK
+				if h.lower().startswith(b"content-type: "):
+					mime = h[14:-2].decode("ascii") # HACK
+			chunked = b"transfer-encoding: chunked\r\n" in response_headers
+			payload = InWarc(f, payload_begin, offset + length - payload_begin, mode="r",
+				encoding=encoding, chunked=chunked)
+			if mime:
+				payload.mime = mime
+			assert warc_record_id not in responses
+			responses[warc_record_id] = [None, (keep_headers, response_headers, payload)]
+			order.append(warc_record_id)
+
+		elif warc_type == b"revisit":
+			response_headers = list(read_header_lines_limited(f, stop=offset+length))
+			warc_refers_to = h.get(b"warc-refers-to", None)
+			payload = responses[warc_refers_to][1][2]
+			assert warc_record_id not in responses
+			responses[warc_record_id] = [None, (keep_headers, response_headers, payload)]
+			order.append(warc_record_id)
+
+		elif warc_type == b"request":
+			request_headers = list(read_header_lines_limited(f, stop=offset+length))
+			warc_concurrent_to = [value for name, value in headers if name.lower() == b"warc-concurrent-to"]
+			for response_record_id in warc_concurrent_to:
+				assert responses[response_record_id][0] == None
+				responses[response_record_id][0] = (keep_headers, request_headers)
+
+	return [responses[record_id] for record_id in order]

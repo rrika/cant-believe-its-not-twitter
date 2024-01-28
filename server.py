@@ -1,4 +1,4 @@
-from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory # db will process sys.argv
+from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory, InWarc # db will process sys.argv
 
 import os.path, time, datetime, sys
 server_path = os.path.dirname(__file__)
@@ -436,7 +436,7 @@ def media(path):
 		del request.environ["HTTP_IF_MODIFIED_SINCE"]
 	if isinstance(item, OnDisk):
 		response = static_file(os.path.basename(item.path), root=os.path.dirname(item.path), mimetype=getattr(item, "mime", "auto"))
-	elif isinstance(item, InZip):
+	elif isinstance(item, (InZip, InWarc)):
 		with item.open() as f:
 			response = static_blob(f.read(), item.mime)
 	elif isinstance(item, InMemory):

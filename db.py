@@ -2,7 +2,7 @@ import sys, json, os, base64, os.path, re, zipfile, mimetypes
 import datetime
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
-from har import HarStore, OnDisk, InZip, InMemory
+from har import HarStore, OnDisk, InZip, InMemory, InWarc, read_warc
 
 class Sizes:
 	def __init__(self, sizes):
@@ -435,6 +435,7 @@ class DB:
 		self.user_by_handle = {}
 		self.media = MediaStore()
 		self.har = HarStore("harstore")
+		self.warc_responses = {} # to allow warc references across files
 		self.likes_snapshots = {}
 		self.likes_sorted = {}
 		self.likes_unsorted = {}
@@ -1240,6 +1241,8 @@ class DB:
 			pass # todo
 		elif path.endswith("/useFetchProfileBlocks_profileExistsQuery"):
 			pass # todo
+		elif path.endswith("/PinnedTimelines"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1316,8 +1319,9 @@ class DB:
 			self.media.add_http_snapshot(url, item)
 			return
 
+		item_file = item.open()
 		try:
-			data = json.load(item.open())
+			data = json.load(item_file)
 		except:
 			print("not json", fname, path)
 			return
@@ -1357,13 +1361,39 @@ class DB:
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")
 
+	def load_warc(self, fname):
+		f = open(fname, "rb") # leave file open as long as referenced by InWarc objects
+		for (wreq, req), (wres, res, item) in read_warc(f, responses=self.warc_responses):
+			cookies = None
+			for line in req[1:]:
+				m = header_re.match(line)
+				name = m.group(1)
+				value = m.group(2)
+				if name == b"Cookies":
+					cookies = value
+			context = {
+				"url": wreq["warc-target-uri"],
+				"timeStamp": datetime.datetime.fromisoformat(wres["warc-date"]).timestamp() * 1000,
+				"cookies": cookies
+			}
+			if b"transfer-encoding: chunked\r\n" in res or \
+			   b"Transfer-Encoding: chunked\r\n" in res:
+				continue
+			if res[0] in (b"HTTP/1.1 404 Not Found\r\n", b"HTTP/1.1 304 Not Modified\r\n"):
+				continue
+			if "//localhost" in context["url"]:
+				continue
+			self.load_api(fname, item, context)
+
+header_re = re.compile(rb"(.*): (.*)\r\n")
+
 # gather inputs
 
 paths = []
 
 def add_file(path):
 	ext = os.path.splitext(path)[1]
-	if ext in (".zip", ".har"):
+	if ext in (".zip", ".har", ".warc", ".open"):
 		paths.append(path)
 
 def add_path(path):
@@ -1409,6 +1439,8 @@ for path in paths:
 	if path.endswith(".har"):
 		db.har.add(path, skip_if_exists=True)
 		db.load_har(path)
+	elif path.endswith(".warc") or path.endswith(".warc.open"):
+		db.load_warc(path)
 	elif path.endswith(".zip"):
 		db.load(zipfile.ZipFile(path))
 	else:

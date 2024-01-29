@@ -1040,7 +1040,7 @@ class DB:
 		if q and "variables" in q:
 			return json.loads(q["variables"][0])
 
-	def load_gql(self, path, data, context):
+	def apply_context(self, context):
 		self.time = context and context["timeStamp"]
 
 		if context and context.get("cookies", None):
@@ -1053,6 +1053,9 @@ class DB:
 			uid = int(uid[2:])
 		self.uid = uid
 		if uid: self.observers.add(uid)
+
+	def load_gql(self, path, data, context):
+		self.apply_context(context)
 
 		if "data" not in data:
 			return
@@ -1118,7 +1121,7 @@ class DB:
 
 		elif path.endswith("/Bookmarks"):
 			layout, cursors = self.add_with_instructions(data["bookmark_timeline_v2"]["timeline"])
-			user_bookmarks = self.bookmarks_map.setdefault(uid, {})
+			user_bookmarks = self.bookmarks_map.setdefault(self.uid, {})
 			for entry in layout:
 				if entry is None:
 					continue # non-tweet timeline item
@@ -1194,6 +1197,50 @@ class DB:
 		else:
 			assert False, path
 
+	def load_notifications(self, data, context):
+		self.apply_context(context)
+		global_objects = data["globalObjects"]
+		users = global_objects.get("users", {})
+		tweets = global_objects.get("tweets", {})
+		notifications = global_objects.get("notifications", {})
+		timline = data["timeline"]
+		# with self.Tracer():
+		for uid, user in users.items():
+			self.add_legacy_user(user, uid)
+		for twid, tweet in tweets.items():
+			# in notifications some fields are set to null rather than removed
+			for empty_key in (
+				"in_reply_to_status_id",
+				"in_reply_to_status_id_str",
+				"in_reply_to_user_id",
+				"in_reply_to_user_id_str",
+				"in_reply_to_screen_name",
+				"geo",
+				"coordinates",
+				"place",
+				"contributors"
+			):
+				if tweet.get(empty_key, True) is None:
+					del tweet[empty_key]
+			tweet["original_id"] = int(tweet.get("retweeted_status_id_str", twid))
+			self.add_legacy_tweet(tweet)
+
+		for nid, notif in notifications.items():
+			icon_id = notif["icon"]["id"]
+			timestamp = int(notif["timestampMs"])
+			message = notif["message"]
+			template = notif["template"]
+			assert len(template) == 1
+			(kind, t), = template.items()
+			assert kind in ("aggregateUserActionsV1",)
+			assert icon_id in ("heart_icon", "safety_icon", "retweet_icon", "person_icon", "topic_icon", "bell_icon", "milestone_icon"), icon_id
+			if icon_id == "heart_icon":
+				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
+				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else
+				for nuid in users:
+					for twid in targets:
+						self.likes_unsorted.setdefault(nuid, set()).add(twid)
+
 	def load_api(self, fname, item, context):
 		url = context["url"]
 		path = urlparse(url).path
@@ -1211,7 +1258,6 @@ class DB:
 			"/1.1/live_pipeline/update_subscriptions",
 			"/i/api/1.1/jot/",
 			"/i/api/2/badge_count/badge_count.json",
-			"/i/api/2/notifications/all.json",
 			"/i/api/fleets/"
 		):
 			return # also not interesting for now
@@ -1233,6 +1279,8 @@ class DB:
 		if url.startswith("https://twitter.com/i/api/graphql/"):
 			print("adding  ", fname, path)
 			self.load_gql(path, data, context)
+		elif path == "/i/api/2/notifications/all.json":
+			self.load_notifications(data, context)
 		else:
 			print("skipping", fname, path)
 

@@ -415,7 +415,8 @@ class DB:
 			tids.sort(key=lambda twid: -twid)
 
 		# likes in reverse chronological order
-		for uid, likes_snapshots in self.likes_snapshots.items():
+		for uid in set(self.likes_snapshots.keys()) | set(self.likes_unsorted.keys()):
+			likes_snapshots = self.likes_snapshots.get(uid, [])
 			l = seqalign.align(
 				sorted(likes_snapshots, key=lambda snap: -snap.time),
 				evid_lower_bound_for_itid=lambda twid: ((twid >> 22) + 1288834974657) << 20

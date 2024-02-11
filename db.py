@@ -660,8 +660,24 @@ class DB:
 		# likes in reverse chronological order
 		for uid in set(self.likes_snapshots.keys()) | set(self.likes_unsorted.keys()):
 			likes_snapshots = self.likes_snapshots.get(uid, [])
+			likes_snapshots = sorted(likes_snapshots, key=lambda snap: -snap.time)
+			if True:
+				continue_index = {}
+				for snap in likes_snapshots:
+					if hasattr(snap, "cursor_bottom"):
+						continue_index[snap.cursor_bottom] = snap
+				for snap in likes_snapshots:
+					if hasattr(snap, "continue_from"):
+						from_snap = continue_index.get(snap.continue_from, None)
+						if isinstance(from_snap, seqalign.Items) and isinstance(snap, seqalign.Items):
+							from_snap.items = from_snap.items + snap.items
+							snap.items = None
+						else:
+							del snap.continue_from
+				likes_snapshots = [snap for snap in likes_snapshots if not hasattr(snap, "continue_from")]
+
 			l = seqalign.align(
-				sorted(likes_snapshots, key=lambda snap: -snap.time),
+				likes_snapshots,
 				evid_lower_bound_for_itid=lambda twid: ((twid >> 22) + 1288834974657) << 20
 			)
 
@@ -1415,9 +1431,20 @@ class DB:
 				likes.append((sort_index, twid))
 			cursors = [(cname, cdata["value"]) for cname, cdata in cursors]
 
-			snapshot = seqalign.Events(likes)
+			if not likes:
+				return
+
+			if len(likes) > 1 and likes[0][0] != likes[1][0]+1:
+				snapshot = seqalign.Events(likes)
+			else:
+				snapshot = seqalign.Items([twid for sort_index, twid in likes])
 			snapshot.time = self.time
 			snapshot.continue_from = gql_vars.get("cursor", None)
+			for cname, value in cursors:
+				if cname.startswith("cursor-bottom-"):
+					snapshot.cursor_bottom = value
+					break
+			del cname, value
 
 			snapshots = self.likes_snapshots.setdefault(whose_likes, [])
 			snapshots.append(snapshot)

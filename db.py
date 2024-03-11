@@ -47,13 +47,29 @@ profile_banners_sizes = Sizes([ # aspect ratio 3:1
 ])
 
 card_image_sizes = Sizes([
+	(100, 100, "100x100"),
+	(100, 100, "100x100_2"),
+	(144, 144, "144x144"),
+	(144, 144, "144x144_2"),
 	(120, 120, "120x120"),
 	(240, 240, "240x240"),
+	(280, 150, "280x150"), # non-square
+	(280, 280, "280x280"),
 	(360, 360, "360x360"),
+	(386, 202, "386x202"), # non-square
+	(400, 400, "400x400"),
+	(420, 420, "420x420_1"),
+	(420, 420, "420x420_2"),
 	(600, 314, "600x314"), # non-square
+	(600, 600, "600x600"),
 	(680, 680, "small"), # assume it means the same thing as in media_sizes
+	(800, 320, "800x320_1"), # non-square
+	(800, 419, "800x419"), # non-square
 	(900, 900, "900x900"),
-	(1200, 1200, "medium") # assume it means the same thing as in media_sizes
+	(1200, 627, "1200x627"), # non-square
+	(1200, 1200, "medium"), # assume it means the same thing as in media_sizes
+	(2048, 2048, "2048x2048_2_exp"),
+	(4096, 4096, "orig")
 ])
 
 no_sizes = Sizes([
@@ -62,7 +78,7 @@ no_sizes = Sizes([
 
 def decode_twimg(orig_url):
 	url = urlparse(orig_url)
-	if url.netloc == "abs.twimg.com":
+	if url.netloc == "abs.twimg.com" or orig_url == "https://pbs.twimg.com/cards/player-placeholder.png":
 		assert url.path == "" or url.path[0] == "/"
 		base = url.netloc + url.path
 		return base, (None, None), (None, None)
@@ -320,6 +336,21 @@ def urlmap_entities(urlmap, entities):
 			entities = entities.copy()
 			entities["media"] = media_list
 			return entities
+
+def urlmap_binding_value(urlmap, bv):
+	if bv["type"] == "IMAGE":
+		bv = bv.copy()
+		bv["image_value"]["ourl"] = bv["image_value"]["url"]
+		bv["image_value"]["url"] = urlmap(bv["image_value"]["url"])
+	return bv
+
+def urlmap_card(urlmap, card):
+	card = card.copy()
+	card["binding_values"] = {
+		key: urlmap_binding_value(urlmap, value)
+		for key, value in card["binding_values"].items()
+	}
+	return card
 
 def urlmap_profile(urlmap, user):
 	user = user.copy()

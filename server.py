@@ -1,4 +1,4 @@
-from db import db, urlmap_entities, urlmap_profile, OnDisk, InZip, InMemory # db will process sys.argv
+from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory # db will process sys.argv
 
 import os.path, time, datetime, sys
 server_path = os.path.dirname(__file__)
@@ -35,6 +35,10 @@ class ClientAPI:
 		if "extended_entities" in tweet:
 			extended_entities = urlmap_entities(self.urlmap, tweet["extended_entities"])
 
+		card = None
+		if "card" in tweet:
+			card = urlmap_card(self.urlmap, tweet["card"])
+
 		quoted_status = None
 		if "quoted_status_id_str" in tweet:
 			_, quoted_status = self.get_tweet(int(tweet["quoted_status_id_str"]))
@@ -46,6 +50,8 @@ class ClientAPI:
 			tweet["entities"] = entities
 		if extended_entities:
 			tweet["extended_entities"] = extended_entities
+		if card:
+			tweet["card"] = card
 		if quoted_status:
 			tweet["quoted_status"] = quoted_status
 		del tweet["original_id"]

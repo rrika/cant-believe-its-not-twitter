@@ -158,11 +158,26 @@ let SmallVideoEmbed = (props) => {
                                 h("path", { d: "M21 12L4 2v20l17-10z" }))))) : []),
         h("div", { class: "t20230705-video-right" },
             bv.domain !== undefined ?
-                h("div", { class: "t20230705-video-origin" }, bv.domain.string_value) : [],
+                h("div", { class: "t20230705-card-origin" }, bv.domain.string_value) : [],
             bv.title !== undefined ?
-                h("div", { class: "t20230705-video-title" }, bv.title.string_value) : [props.card.name],
+                h("div", { class: "t20230705-card-title" }, bv.title.string_value) : [props.card.name],
             bv.description !== undefined ?
-                h("div", { class: "t20230705-video-desc" }, bv.description.string_value) : []));
+                h("div", { class: "t20230705-card-desc" }, bv.description.string_value) : []));
+};
+let SummaryLargeImage = (props) => {
+    let bv = props.card.binding_values;
+    let image_url = bv.summary_photo_image.image_value.url;
+    return h("div", { class: "t20230624-embed-rounded-corners t20230810-summary-large" },
+        h("div", { class: "t20230810-summary-large-top" },
+            h("div", { style: "padding-bottom: 52.35602094240838%;" }),
+            h("div", { class: "t20230624-image-div", style: image_url ? `background-image: url('${image_url}');` : "" })),
+        h("div", { class: "t20230810-summary-large-bottom" },
+            bv.domain !== undefined ?
+                h("div", { class: "t20230705-card-origin" }, bv.domain.string_value) : [],
+            bv.title !== undefined ?
+                h("div", { class: "t20230705-card-title" }, bv.title.string_value) : [props.card.name],
+            bv.description !== undefined ?
+                h("div", { class: "t20230705-card-desc" }, bv.description.string_value) : []));
 };
 let Poll = (props) => {
     let card = props.card;
@@ -499,6 +514,8 @@ let Tweet = (props) => {
             embeds.push(h(SmallVideoEmbed, { card: t.card }));
         else if (n == "summary")
             embeds.push(h(SmallVideoEmbed, { card: t.card }));
+        else if (n == "summary_large_image")
+            embeds.push(h(SummaryLargeImage, { card: t.card }));
         else if (n == "poll2choice_text_only" ||
             n == "poll3choice_text_only" ||
             n == "poll4choice_text_only")

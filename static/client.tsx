@@ -311,11 +311,31 @@ let SmallVideoEmbed = (props: {card: any}) => {
 		</div>
 		<div class="t20230705-video-right">
 			{bv.domain !== undefined ?
-				<div class="t20230705-video-origin">{bv.domain.string_value}</div> : []}
+				<div class="t20230705-card-origin">{bv.domain.string_value}</div> : []}
 			{bv.title !== undefined ?
-				<div class="t20230705-video-title">{bv.title.string_value}</div> : [props.card.name]}
+				<div class="t20230705-card-title">{bv.title.string_value}</div> : [props.card.name]}
 			{bv.description !== undefined ?
-				<div class="t20230705-video-desc">{bv.description.string_value}</div> : []}
+				<div class="t20230705-card-desc">{bv.description.string_value}</div> : []}
+		</div>
+	</div>;
+};
+
+let SummaryLargeImage = (props: {card: any}) => {
+	let bv = props.card.binding_values;
+	let image_url = bv.summary_photo_image.image_value.url;
+	return <div class="t20230624-embed-rounded-corners t20230810-summary-large">
+		<div class="t20230810-summary-large-top">
+			<div style="padding-bottom: 52.35602094240838%;"/>
+			<div class="t20230624-image-div" style={image_url ? `background-image: url('${image_url}');` : ""}>
+			</div>
+		</div>
+		<div class="t20230810-summary-large-bottom">
+			{bv.domain !== undefined ?
+				<div class="t20230705-card-origin">{bv.domain.string_value}</div> : []}
+			{bv.title !== undefined ?
+				<div class="t20230705-card-title">{bv.title.string_value}</div> : [props.card.name]}
+			{bv.description !== undefined ?
+				<div class="t20230705-card-desc">{bv.description.string_value}</div> : []}
 		</div>
 	</div>;
 };
@@ -698,6 +718,8 @@ let Tweet = (props: TweetProps) => {
 			embeds.push(<SmallVideoEmbed card={t.card}/>);
 		else if (n == "summary")
 			embeds.push(<SmallVideoEmbed card={t.card}/>);
+		else if (n == "summary_large_image")
+			embeds.push(<SummaryLargeImage card={t.card}/>);
 		else if (
 			n == "poll2choice_text_only" ||
 			n == "poll3choice_text_only" ||

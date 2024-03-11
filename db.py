@@ -46,6 +46,16 @@ profile_banners_sizes = Sizes([ # aspect ratio 3:1
 	(4096, 4096, "")
 ])
 
+card_image_sizes = Sizes([
+	(120, 120, "120x120"),
+	(240, 240, "240x240"),
+	(360, 360, "360x360"),
+	(600, 314, "600x314"), # non-square
+	(680, 680, "small"), # assume it means the same thing as in media_sizes
+	(900, 900, "900x900"),
+	(1200, 1200, "medium") # assume it means the same thing as in media_sizes
+])
+
 no_sizes = Sizes([
 	(None, None, None)
 ])
@@ -138,6 +148,7 @@ def decode_twimg(orig_url):
 	elif url.path.startswith("/card_img/"):
 		m = re.fullmatch(r"(/card_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
 		assert m, url.path
+		sizes = card_image_sizes
 		default_size = None # won't load without size
 
 	elif url.path.startswith("/semantic_core_img/"):

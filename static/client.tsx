@@ -322,7 +322,9 @@ let SmallVideoEmbed = (props: {card: any}) => {
 
 let SummaryLargeImage = (props: {card: any}) => {
 	let bv = props.card.binding_values;
-	let image_url = bv.summary_photo_image.image_value.url;
+	let image_url = "";
+	if (bv.summary_photo_image)
+		image_url = bv.summary_photo_image.image_value.url;
 	return <div class="t20230624-embed-rounded-corners t20230810-summary-large">
 		<div class="t20230810-summary-large-top">
 			<div style="padding-bottom: 52.35602094240838%;"/>

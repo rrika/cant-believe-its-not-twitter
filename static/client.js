@@ -166,7 +166,9 @@ let SmallVideoEmbed = (props) => {
 };
 let SummaryLargeImage = (props) => {
     let bv = props.card.binding_values;
-    let image_url = bv.summary_photo_image.image_value.url;
+    let image_url = "";
+    if (bv.summary_photo_image)
+        image_url = bv.summary_photo_image.image_value.url;
     return h("div", { class: "t20230624-embed-rounded-corners t20230810-summary-large" },
         h("div", { class: "t20230810-summary-large-top" },
             h("div", { style: "padding-bottom: 52.35602094240838%;" }),

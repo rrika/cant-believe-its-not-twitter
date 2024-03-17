@@ -338,8 +338,12 @@ def urlmap_entities(urlmap, entities):
 			return entities
 
 def urlmap_binding_value(urlmap, bv):
+	if "type" not in bv:
+		# eg. {'scribe_key': 'publisher_id'}
+		return bv
 	if bv["type"] == "IMAGE":
 		bv = bv.copy()
+		bv["image_value"] = bv["image_value"].copy()
 		bv["image_value"]["ourl"] = bv["image_value"]["url"]
 		bv["image_value"]["url"] = urlmap(bv["image_value"]["url"])
 	return bv

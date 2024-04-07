@@ -1,8 +1,39 @@
-import sys, json, os, base64, os.path, re, zipfile, mimetypes
+import sys, json, os, base64, os.path, re, zipfile, mimetypes, http.cookies
 import datetime
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory, InWarc, read_warc
+
+class TwitterCookie(http.cookies.SimpleCookie):
+
+	# twitter has quotes in the middle of cookies, like
+	# Cookie: remember_checked_on=1; g_state={\"i_p\":999999999,\"i_l\":3}; d_prefs=...
+
+	LegalKeyChars  = r"\w\d!#%&'~_`><@,:/\$\*\+\-\.\^\|\)\(\?\}\{\="
+	LegalValueChars = LegalKeyChars + r'\[\]'
+	CookiePattern = re.compile(r"""
+	    \s*                            # Optional whitespace at start of cookie
+	    (?P<key>                       # Start of group 'key'
+	    [""" + LegalKeyChars + r"""]+?   # Any word of at least one letter
+	    )                              # End of group 'key'
+	    (                              # Optional group: there may not be a value.
+	    \s*=\s*                          # Equal Sign
+	    (?P<val>                         # Start of group 'val'
+	    "(?:[^\\"]|\\.)*"                  # Any doublequoted string
+	    |                                  # or
+	    \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT  # Special case for "expires" attr
+	    |                                  # or
+	    [""" + LegalValueChars + r"""]     # Any word
+	    [""" + LegalValueChars + r"""\"]*  # including with quotes in the middle
+	    |                                  # or empty string
+	    )                                # End of group 'val'
+	    )?                             # End of optional value group
+	    \s*                            # Any number of spaces.
+	    (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+	    """, re.ASCII | re.VERBOSE)    # re.ASCII may be removed if safe.
+
+	def load(self, rawdata):
+		return self._BaseCookie__parse_string(rawdata, self.CookiePattern)
 
 class Sizes:
 	def __init__(self, sizes):
@@ -1389,8 +1420,11 @@ class DB:
 				m = header_re.match(line)
 				name = m.group(1)
 				value = m.group(2)
-				if name == b"Cookies":
-					cookies = value
+				if name == b"Cookie":
+					cookies = [
+						{"name": morsel.key, "value": morsel.value}
+						for morsel in TwitterCookie(value.decode("utf-8")).values()
+					]
 			context = {
 				"url": wreq["warc-target-uri"],
 				"timeStamp": datetime.datetime.fromisoformat(wres["warc-date"]).timestamp() * 1000,

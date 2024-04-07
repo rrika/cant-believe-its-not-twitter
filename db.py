@@ -1411,10 +1411,12 @@ header_re = re.compile(rb"(.*): (.*)\r\n")
 
 paths = []
 
-def add_file(path):
+def add_file(path, explicit):
 	ext = os.path.splitext(path)[1]
 	if ext in (".zip", ".har", ".warc", ".open"):
 		paths.append(path)
+	if ext == ".txt" and explicit:
+		add_list(path)
 
 def add_path(path):
 	if os.path.isdir(path):
@@ -1423,13 +1425,13 @@ def add_path(path):
 			paths.append(path)
 		else:
 			for fname in os.listdir(path):
-				add_file(os.path.join(path, fname) if path != "." else fname)
+				add_file(os.path.join(path, fname) if path != "." else fname, explicit=False)
 	else:
-		add_file(path)
+		add_file(path, explicit=True)
 
 def add_list(path):
 	try:
-		with open("exports.txt") as f:
+		with open(path) as f:
 			lines = f.readlines()
 	except:
 		return

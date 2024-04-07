@@ -177,6 +177,12 @@ def decode_twimg(orig_url):
 		assert m, url.path
 		default_size = None # won't load without size
 
+	elif url.path.startswith("/community_banner_img/"):
+		m = re.fullmatch(r"(/community_banner_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
+		assert m, url.path
+		sizes = media_sizes
+		default_size = None # won't load without size
+
 	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png":
 		m = re.fullmatch(r"(/static/.*)", url.path)
 		sizes = no_sizes
@@ -266,6 +272,8 @@ class MediaStore:
 			imageset.add(item, (fmt, "medium"), (media_sizes, fullres))
 
 	def add_http_snapshot(self, url, item):
+		if url == "https://pbs.twimg.com/favicon.ico":
+			return
 		cache_key, variant, image_set_info = decode_twimg(url)
 		imageset = self.media_by_url.setdefault(cache_key, ImageSet())
 		imageset.add(item, variant, image_set_info)

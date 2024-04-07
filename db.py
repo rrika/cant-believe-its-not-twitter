@@ -1004,6 +1004,8 @@ class DB:
 			pass
 		elif ct == "TimelineTombstone":
 			pass
+		elif ct == "TimelineCommunity":
+			pass # todo
 		else:
 			assert False, ct
 
@@ -1243,6 +1245,14 @@ class DB:
 			pass # todo
 		elif path.endswith("/PinnedTimelines"):
 			pass # todo
+		elif path.endswith("/ExploreSidebar"):
+			pass # todo
+		elif path.endswith("/ExplorePage"):
+			pass # todo
+		elif path.endswith("/UserPreferences"):
+			pass # todo
+		elif path.endswith("/useTypingNotifierMutation"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1282,7 +1292,9 @@ class DB:
 			assert len(template) == 1
 			(kind, t), = template.items()
 			assert kind in ("aggregateUserActionsV1",)
-			assert icon_id in ("heart_icon", "safety_icon", "retweet_icon", "person_icon", "topic_icon", "bell_icon", "milestone_icon"), icon_id
+			assert icon_id in (
+				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
+				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

@@ -847,7 +847,7 @@ let QuotedTweet = (props: TweetProps) => {
 			</div>
 		</div>
 		<div class="t20230630-qrt-bottom t20230403-contents">
-			<TweetText tweet={props.t}/>
+			{props.t.full_text !== undefined ? <TweetText tweet={props.t}/> : "[missing]"}
 		</div>
 	</div>;
 }
@@ -1022,7 +1022,7 @@ type HistogramProps = {
 	toggleMode?: () => void,
 }
 
-let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 let Histogram = (props: HistogramProps) => <>
 	{props.histogram.map((row)=>

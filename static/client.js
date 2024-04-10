@@ -628,8 +628,7 @@ let QuotedTweet = (props) => {
                     u.screen_name),
                 h("span", { class: "t20230403-user-line-punctuation" }, "\u00B7"),
                 h("a", { class: "t20230403-user-line-time", href: `https://twitter.com/${u.screen_name}/status/${props.t.id_str}` }, props.t.created_at ? dateFormat(props.t.created_at) : dateFormat(tweetIdToEpoch(props.t.id_str))))),
-        h("div", { class: "t20230630-qrt-bottom t20230403-contents" },
-            h(TweetText, { tweet: props.t })));
+        h("div", { class: "t20230630-qrt-bottom t20230403-contents" }, props.t.full_text !== undefined ? h(TweetText, { tweet: props.t }) : "[missing]"));
 };
 let DMText = (props) => {
     let text = props.msgc.text;
@@ -770,7 +769,7 @@ let Header = (props) => h("div", { class: "t20230628-timeline-header" },
                 h("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" },
                     h("g", null,
                         h("path", { d: "M7.414 13l5.043 5.04-1.414 1.42L3.586 12l7.457-7.46 1.414 1.42L7.414 11H21v2H7.414z" })))))));
-let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jul", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let Histogram = (props) => h(Fragment, null,
     props.histogram.map((row) => h("div", { class: "t20160910-histogram" + (row[0] == props.year || props.year === undefined ? " t20160910-active" : "") },
         h("h3", null, row[0]),

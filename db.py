@@ -86,6 +86,7 @@ card_image_sizes = Sizes([
 	(240, 240, "240x240"),
 	(280, 150, "280x150"), # non-square
 	(280, 280, "280x280"),
+	(280, 280, "280x280_2"),
 	(360, 360, "360x360"),
 	(386, 202, "386x202"), # non-square
 	(400, 400, "400x400"),
@@ -97,6 +98,7 @@ card_image_sizes = Sizes([
 	(800, 320, "800x320_1"), # non-square
 	(800, 419, "800x419"), # non-square
 	(900, 900, "900x900"),
+	(1000, 1000, "1000x1000"),
 	(1200, 627, "1200x627"), # non-square
 	(1200, 1200, "medium"), # assume it means the same thing as in media_sizes
 	(2048, 2048, "2048x2048_2_exp"),
@@ -213,6 +215,18 @@ def decode_twimg(orig_url):
 		assert m, url.path
 		sizes = media_sizes
 		default_size = None # won't load without size
+
+	elif url.path.startswith("/list_banner_img/"):
+		m = re.fullmatch(r"(/list_banner_img/([0-9]+)/([A-Za-z0-9_-]+))", url.path)
+		assert m, url.path
+		sizes = media_sizes # guess
+		default_size = None # won't load without size
+
+	elif url.path.startswith("/dm_gif_preview/"):
+		m = re.fullmatch(r"(/dm_gif_preview/([0-9]+)/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
+		assert m, url.path
+		ext = m.group(5)
+		default_size = "small"
 
 	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png":
 		m = re.fullmatch(r"(/static/.*)", url.path)
@@ -960,6 +974,7 @@ class DB:
 			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
 				"poll3choice_text_only", "poll4choice_text_only", "unified_card") or \
 				card["name"].endswith(":live_event") or \
+				card["name"].endswith(":broadcast") or \
 				card["name"].endswith(":audiospace"), (tweet, card, card["name"])
 			card["binding_values"] = {
 				keyvalue["key"]: keyvalue["value"]
@@ -1044,6 +1059,10 @@ class DB:
 		elif ct == "TimelineTombstone":
 			pass
 		elif ct == "TimelineCommunity":
+			pass # todo
+		elif ct == "TimelineMessagePrompt":
+			pass # todo
+		elif ct == "TimelineLabel": # eg. More replies
 			pass # todo
 		else:
 			assert False, ct
@@ -1265,7 +1284,9 @@ class DB:
 			for user in data["users"]:
 				self.add_user(user)
 		elif path.endswith("/SearchTimeline"):
-			self.add_with_instructions(data["search_by_raw_query"]["search_timeline"]["timeline"])
+			search_timeline = data["search_by_raw_query"]["search_timeline"]
+			if "timeline" in search_timeline:
+				self.add_with_instructions(search_timeline["timeline"])
 		elif path.endswith("/FavoriteTweet"):
 			pass
 		elif path.endswith("/UnfavoriteTweet"):
@@ -1275,6 +1296,8 @@ class DB:
 		elif path.endswith("/CreateRetweet"):
 			pass # todo
 		elif path.endswith("/FollowersYouKnow"):
+			pass # todo
+		elif path.endswith("/BlueVerifiedFollowers"):
 			pass # todo
 		elif path.endswith("/CreateBookmark"):
 			pass # todo
@@ -1291,6 +1314,22 @@ class DB:
 		elif path.endswith("/UserPreferences"):
 			pass # todo
 		elif path.endswith("/useTypingNotifierMutation"):
+			pass # todo
+		elif path.endswith("/AccountSwitcherDelegateQuery"):
+			pass # todo
+		elif path.endswith("/DelegatedAccountListQuery"):
+			pass # todo
+		elif path.endswith("/SensitiveMediaSettingsQuery"):
+			pass # todo
+		elif path.endswith("/fetchDownloadSettingAllowedQuery"):
+			pass # todo
+		elif path.endswith("/ListsManagementPageTimeline"):
+			pass # todo
+		elif path.endswith("/ListLatestTweetsTimeline"):
+			pass # todo
+		elif path.endswith("/BroadcastQuery"):
+			pass # todo
+		elif path.endswith("/PutClientEducationFlag"):
 			pass # todo
 		else:
 			assert False, path

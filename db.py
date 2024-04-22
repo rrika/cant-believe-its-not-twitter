@@ -151,10 +151,10 @@ def decode_twimg(orig_url):
 	if url.path.startswith("/profile_images/"):
 		# commented out because some twitter users set their profile picture before twitter renamed images to a random letter string
 		# m = re.fullmatch(r"/profile_images/([0-9]+)/([A-Za-z0-9_-]+?)(_(normal|bigger|x96|reasonably_small|mini|200x200|400x400))?\.([A-Za-z0-9]{1,5})", url.path)
-		m = re.fullmatch(r"(/profile_images/([0-9]+)/(.+?))(_(normal|bigger|x96|reasonably_small|mini|200x200|400x400))?\.([A-Za-z0-9]{1,5})", url.path)
+		m = re.fullmatch(r"(/profile_images/([0-9]+)/(.+?))(_(normal|bigger|x96|reasonably_small|mini|200x200|400x400))?(\.([A-Za-z0-9]{1,5}))?", url.path)
 		assert m, url.path
 		size = m.group(4) or ""
-		ext = m.group(6)
+		ext = m.group(7) # sometimes this is missing
 		sizes = profile_images_sizes
 		fullres_fmt = "{base}.{ext}"
 		default_size = ""
@@ -1270,7 +1270,8 @@ class DB:
 		elif path.endswith("/Retweeters"):
 			self.add_with_instructions(data["retweeters_timeline"]["timeline"])
 		elif path.endswith("/FetchDraftTweets"):
-			assert data == {"viewer":{"draft_list":{"response_data":[]}}}
+			#assert data == {"viewer":{"draft_list":{"response_data":[]}}}
+			pass
 		elif path.endswith("/FetchScheduledTweets"):
 			assert data == {"viewer":{"scheduled_tweet_list":[]}}
 		elif path.endswith("/AuthenticatedUserTFLists"): # circles
@@ -1330,6 +1331,30 @@ class DB:
 		elif path.endswith("/BroadcastQuery"):
 			pass # todo
 		elif path.endswith("/PutClientEducationFlag"):
+			pass # todo
+		elif path.endswith("/ConnectTabTimeline"):
+			pass # todo
+		elif path.endswith("/TweetResultByRestId"):
+			pass # todo
+		elif path.endswith("/ModeratedTimeline"):
+			pass # todo
+		elif path.endswith("/PremiumSignUpQuery"):
+			pass # todo
+		elif path.endswith("/useSubscriptionProductDetailsQuery"):
+			pass # todo
+		elif path.endswith("/ListProductSubscriptions"):
+			pass # todo
+		elif path.endswith("/CommunitiesCreateButtonQuery"):
+			pass # todo
+		elif path.endswith("/CarouselQuery"):
+			pass # todo
+		elif path.endswith("/CommunitiesMainPageTimeline"):
+			pass # todo
+		elif path.endswith("/RemoveFollower"):
+			pass # todo
+		elif path.endswith("/ListOwnerships"):
+			pass # todo
+		elif path.endswith("/ListAddMember"):
 			pass # todo
 		else:
 			assert False, path

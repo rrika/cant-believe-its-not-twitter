@@ -102,6 +102,7 @@ card_image_sizes = Sizes([
 	(1200, 627, "1200x627"), # non-square
 	(1200, 1200, "medium"), # assume it means the same thing as in media_sizes
 	(2048, 2048, "2048x2048_2_exp"),
+	(2048, 2048, "large"), # assume it means the same thing as in media_sizes
 	(4096, 4096, "orig")
 ])
 
@@ -173,7 +174,7 @@ def decode_twimg(orig_url):
 		m = re.fullmatch(r"(/media/([A-Za-z0-9_-]+))(\.([A-Za-z0-9]{1,5}))?(:([a-z0-9_]+))?", url.path)
 		assert m, url.path
 		ext = m.group(4)
-		size = m.group(5)
+		size = m.group(6)
 		default_size = "medium" # sometimes
 
 	elif url.path.startswith("/amplify_video_thumb/"):
@@ -965,9 +966,15 @@ class DB:
 			tweet = tweet["tweet"]
 		elif tn == "TweetTombstone":
 			return
+		elif tn == "TweetUnavailable":
+			return
 
+		assert "core" in tweet, (tn, list(tweet))
 		user = tweet["core"]["user_results"]["result"]
 		card = tweet.pop("card", None)
+		if "legacy" not in tweet and "errors" in self.toplevel:
+			return # TODO, but expected
+		assert "legacy" in tweet, tweet
 		legacy = tweet["legacy"]
 		if card:
 			card = card["legacy"]
@@ -1039,15 +1046,19 @@ class DB:
 		elif ct == "TimelineTweet":
 			if "promotedMetadata" in content:
 				return
+			display_type = content.pop("tweetDisplayType")
+			assert display_type in ("Tweet", "SelfThread", "MediaGrid", "CondensedTweet"), display_type
 			tweet_results = content["tweet_results"]
 			if not tweet_results: # happens in /Likes
-				assert content == {'itemType': 'TimelineTweet', '__typename': 'TimelineTweet', 'tweet_results': {}, 'tweetDisplayType': 'Tweet'}
+				assert content == {'itemType': 'TimelineTweet', '__typename': 'TimelineTweet', 'tweet_results': {}}, content
 				return
 			tweet = tweet_results["result"]
 			self.add_tweet(tweet)
 			if tweet.get("__typename", None) == "TweetWithVisibilityResults":
 				tweet = tweet["tweet"]
 			if tweet.get("__typename", None) == "TweetTombstone":
+				return None
+			if tweet.get("__typename", None) == "TweetUnavailable":
 				return None
 			return int(tweet["rest_id"])
 		elif ct == "TimelineTimelineCursor":
@@ -1063,6 +1074,8 @@ class DB:
 		elif ct == "TimelineMessagePrompt":
 			pass # todo
 		elif ct == "TimelineLabel": # eg. More replies
+			pass # todo
+		elif ct == "TimelinePrompt":
 			pass # todo
 		else:
 			assert False, ct
@@ -1167,6 +1180,7 @@ class DB:
 		if "data" not in data:
 			return
 
+		self.toplevel = data
 		data = data["data"]
 		if path.endswith("/GetUserClaims"):
 			pass
@@ -1183,12 +1197,16 @@ class DB:
 		elif path.endswith("/UserByRestId"):
 			self.add_user(data["user"]["result"])
 		elif path.endswith("/UserByScreenName"):
+			if data == {}:
+				return
 			self.add_user(data["user"]["result"])
 		elif path.endswith("/HomeLatestTimeline"):
 			self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/HomeTimeline"):
 			self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/TweetDetail"):
+			if data == {}:
+				return
 			self.add_with_instructions(data["threaded_conversation_with_injections_v2"])
 		elif path.endswith("/ProfileSpotlightsQuery"):
 			#self.add_user(data["user_result_by_screen_name"]["result"])
@@ -1356,11 +1374,26 @@ class DB:
 			pass # todo
 		elif path.endswith("/ListAddMember"):
 			pass # todo
+		elif path.endswith("/DeleteTweet"):
+			pass # todo
+		elif path.endswith("/ConversationControlChange"):
+			pass # todo
+		elif path.endswith("/DeleteRetweet"):
+			pass # todo
+		elif path.endswith("/UnpinTweet"):
+			pass # todo
+		elif path.endswith("/useDMReactionMutationAddMutation"):
+			pass # todo
+		elif path.endswith("/DeleteBookmark"):
+			pass # todo
 		else:
 			assert False, path
 
 	def load_notifications(self, data, context):
 		self.apply_context(context)
+		if "errors" in data and "globalObjects" not in data:
+			return
+		assert "globalObjects" in data, data
 		global_objects = data["globalObjects"]
 		users = global_objects.get("users", {})
 		tweets = global_objects.get("tweets", {})
@@ -1397,7 +1430,8 @@ class DB:
 			assert kind in ("aggregateUserActionsV1",)
 			assert icon_id in (
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
-				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon"), icon_id
+				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
+				"histogram_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

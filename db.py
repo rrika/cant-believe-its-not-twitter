@@ -137,9 +137,10 @@ def decode_twimg(orig_url):
 		base = url.netloc + url.path
 		return base, (None, None), (no_sizes, None)
 
-	elif url.netloc == "video.twimg.com":
+	elif url.netloc in ("video.twimg.com", "video-ft.twimg.com", "video-cf.twimg.com"): # when are -ft and -cf used?
 		if url.path.startswith("/ext_tw_video/"):
-			m = re.fullmatch(r"/ext_tw_video/[0-9]+/p(?:r|u)/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			#m = re.fullmatch(r"/ext_tw_video/[0-9]+/p(?:r|u)/(?:pl|vid(?:/avc1)?)(?:/[0-9]+x[0-9]+)?/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			m = re.fullmatch(r"/ext_tw_video/[0-9]+/.*/([A-Za-z0-9_-]+)\.(mp4|m4s|m3u8|ts)", url.path)
 			assert m, url.path
 			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
 
@@ -148,8 +149,17 @@ def decode_twimg(orig_url):
 			assert m, url.path
 			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
 
+		elif url.path.startswith("/subtitles/"):
+			base = url.netloc + url.path # TODO
+
+		elif url.path.startswith("/dm_gif/"):
+			m = re.fullmatch(r"/dm_gif/([0-9]+)/([A-Za-z0-9_-]+)\.(mp4)", url.path)
+			assert m, url.path
+			base = url.netloc + url.path # TODO
+
 		elif url.path.startswith("/amplify_video/"):
-			m = re.fullmatch(r"/amplify_video/[0-9]+/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			#m = re.fullmatch(r"/amplify_video/[0-9]+/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
+			m = re.fullmatch(r"/amplify_video/[0-9]+/.*/([A-Za-z0-9_-]+)\.(mp4|m4s|m3u8)", url.path)
 			assert m, url.path
 			base = "{}/{}.{}".format(url.netloc, m.group(1), m.group(2))
 
@@ -316,6 +326,17 @@ class ImageSet:
 				return blob, True
 		return entries[-1][2], self.have_largest
 
+class VideoSet:
+	# logic is currently external, refactor this
+	def __init__(self):
+		self.entries = []
+
+	def add(self, blob):
+		self.entries.append(blob)
+
+	def get_variant(self, *ignore):
+		return self.entries[0], False
+
 class MediaStore:
 	def __init__(self):
 		self.media_by_url = {}
@@ -330,27 +351,37 @@ class MediaStore:
 			if not m:
 				print("what about", media_fname)
 				continue
-			if m.group(3) == "mp4":
-				cache_key = "video.twimg.com/" + m.group(2) + ".mp4"
-			else:
-				cache_key = "/media/"+m.group(2)
-			imageset = self.media_by_url.setdefault(cache_key, ImageSet())
-			fmt = m.group(3)
+
 			path = tweets_media+"/"+media_fname
-			fullres = "https://pbs.twimg.com{}?format={}&name=orig".format(cache_key, fmt)
 			if isinstance(fs, ZipFS):
 				item = InZip(fs.zipf, path)
 				item.mime = mimetypes.guess_type(path)
 			else:
 				item = OnDisk(path)
-			imageset.add(item, (fmt, "medium"), (media_sizes, fullres))
+
+			fmt = m.group(3)
+			if fmt == "mp4":
+				cache_key = "video.twimg.com/" + m.group(2) + ".mp4"
+				videoset = self.media_by_url.setdefault(cache_key, VideoSet())
+				videoset.add(item)
+			else:
+				cache_key = "/media/"+m.group(2)
+				imageset = self.media_by_url.setdefault(cache_key, ImageSet())
+				fullres = "https://pbs.twimg.com{}?format={}&name=orig".format(cache_key, fmt)
+				imageset.add(item, (fmt, "medium"), (media_sizes, fullres))
 
 	def add_http_snapshot(self, url, item):
 		if url == "https://pbs.twimg.com/favicon.ico":
 			return
+		if url == "https://video.twimg.com/favicon.ico":
+			return
 		cache_key, variant, image_set_info = decode_twimg(url)
-		imageset = self.media_by_url.setdefault(cache_key, ImageSet())
-		imageset.add(item, variant, image_set_info)
+		if url.startswith("https://video.twimg.com"): # HACK
+			videoset = self.media_by_url.setdefault(cache_key, VideoSet())
+			videoset.add(item)
+		else:
+			imageset = self.media_by_url.setdefault(cache_key, ImageSet())
+			imageset.add(item, variant, image_set_info)
 
 	# check store
 
@@ -1566,7 +1597,7 @@ class DB:
 		):
 			return # also not interesting for now
 
-		if url.startswith("https://pbs.twimg.com/"):
+		if url.startswith("https://pbs.twimg.com/") or url.startswith("https://video.twimg.com/"):
 			if isinstance(item, InMemory) and item.data == "":
 				print("empty   ", fname, path)
 				return # why
@@ -1594,8 +1625,6 @@ class DB:
 		any_missing = False
 		for entry in lhar["log"]["entries"]:
 			url = entry["request"]["url"]
-			if "video.twimg.com/ext_tw_video" in url:
-				continue # firefox HAR says base64 encoding even though that's a lie
 			response = entry["response"]["content"]
 			if response:
 				time = datetime.datetime.fromisoformat(entry["startedDateTime"])

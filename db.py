@@ -546,7 +546,7 @@ class DB:
 		# bookmarks in reverse chronological order
 		for uid, bookmarks in self.bookmarks_map.items():
 			l = sorted(bookmarks.items(), key=lambda a: -a[1])
-			l = [twid for twid, sort_index in l]
+			l = [(sort_index, twid) for twid, sort_index in l]
 			self.bookmarks_sorted[uid] = l
 
 		# replies hint at followings

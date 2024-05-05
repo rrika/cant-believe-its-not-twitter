@@ -118,7 +118,7 @@ class ClientAPI:
 		return [(likeid, self.get_tweet(twid)) for likeid, twid in self.db.get_user_likes(uid)]
 
 	def bookmarks_view(self, uid):
-		return [self.get_tweet(twid) for twid in self.db.get_user_bookmarks(uid)]
+		return [(markid, self.get_tweet(twid)) for markid, twid in self.db.get_user_bookmarks(uid)]
 
 	def interactions_view(self, uid):
 		return [self.get_tweet(twid) for twid in self.db.get_user_interactions(uid)]
@@ -339,7 +339,7 @@ def likes(uid):
 def bookmarks(uid):
 	return paginated_tweets({
 		"topProfile": ca.get_profile(uid),
-		"tweets": ca.bookmarks_view(uid)
+		"likes": ca.bookmarks_view(uid)
 	})
 
 @route('/api/interactions/<uid:int>')

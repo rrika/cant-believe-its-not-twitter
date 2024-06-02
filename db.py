@@ -1,5 +1,6 @@
 import sys, json, os, base64, os.path, re, zipfile, mimetypes, http.cookies
 import datetime
+import contextlib, tempfile, subprocess # for video reencoding
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory, InWarc, read_warc
@@ -337,6 +338,38 @@ class VideoSet:
 	def get_variant(self, *ignore):
 		return self.entries[0], False
 
+def merge_m3u8(m3u, get):
+	with contextlib.ExitStack() as stack:
+		rewritten = []
+		def urlmap(url):
+			_, ext = os.path.splitext(urlparse(url).path)
+			chunk = get(url)
+			if isinstance(chunk, OnDisk):
+				return os.path.abspath(chunk.path)
+			else:
+				chunkfile = stack.enter_context(tempfile.NamedTemporaryFile(suffix=ext))
+				with chunk.open() as f:
+					chunkfile.write(f.read())
+					chunkfile.flush()
+				return chunkfile.name
+
+		for line in m3u.splitlines():
+			if m := re.match(r'#EXT-X-MAP:URI="(.*)"', line):
+				rewritten.append('#EXT-X-MAP:URI="{}"'.format(urlmap(m.group(1))))
+			elif line and not line.startswith("#"):
+				rewritten.append(urlmap(line))
+			else:
+				rewritten.append(line)
+
+		rewritten = "\n".join(rewritten) + "\n"
+		with tempfile.NamedTemporaryFile(mode="w", suffix=".m3u8") as rewritten_m3u:
+			rewritten_m3u.write(rewritten)
+			rewritten_m3u.flush()
+			#rewritten_m3u.close()
+			with tempfile.NamedTemporaryFile(mode="rb", suffix=".mp4") as merged_mp4:
+				subprocess.check_call(["ffmpeg", "-y", "-allowed_extensions", "ALL", "-i", rewritten_m3u.name, "-c", "copy", "-strict", "-2", merged_mp4.name])
+				return merged_mp4.read()
+
 class MediaStore:
 	def __init__(self):
 		self.media_by_url = {}
@@ -393,6 +426,44 @@ class MediaStore:
 		if imageset:
 			return imageset.get_variant(fmt, variant_name)
 		return None, False
+
+	# remux video
+
+	def lookup_video(self, url):
+
+		def get(url):
+			# awkward because this class is designed for imagesets and not videos
+			if url.startswith("/"):
+				url = "https://video.twimg.com" + url
+			cache_key, _, _ = decode_twimg(url)
+			if cache_key not in self.media_by_url:
+				return None
+			item, _ = self.media_by_url[cache_key].get_variant(None, None)
+			return item
+
+		assert url
+		top_m3u_item = get(url.replace(".m3u8.mp4", ".m3u8"))
+		top_m3u = top_m3u_item.open().read()
+		if isinstance(top_m3u, bytes):
+			top_m3u = top_m3u.decode("ascii")
+		sub_m3u_urls = [line for line in top_m3u.splitlines() if line and not line.startswith("#")]
+
+		for sub_m3u_url in sub_m3u_urls:
+			with get(sub_m3u_url).open() as sub_m3u_file:
+				sub_m3u = sub_m3u_file.read()
+			if isinstance(sub_m3u, bytes):
+				sub_m3u = sub_m3u.decode("ascii")
+			is_complete = True
+			for line in sub_m3u.splitlines():
+				if line and not line.startswith("#") and not get(line):
+					is_complete = False
+			if not is_complete:
+				continue
+
+			merged_video = merge_m3u8(sub_m3u, get)
+			item = InMemory(merged_video)
+			item.mime = "video/mp4"
+			return item, False
 
 # replace urls in tweet/user objects
 

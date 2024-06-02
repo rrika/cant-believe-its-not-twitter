@@ -1475,7 +1475,7 @@ class DB:
 			print("not json", fname, path)
 			return
 
-		if url.startswith("https://twitter.com/i/api/graphql/"):
+		if url.startswith("https://twitter.com/i/api/graphql/") or url.startswith("https://x.com/i/api/graphql/"):
 			print("adding  ", fname, path)
 			self.load_gql(path, data, context)
 		elif path == "/i/api/2/notifications/all.json":

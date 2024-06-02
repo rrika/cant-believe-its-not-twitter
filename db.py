@@ -35,6 +35,15 @@ class TwitterCookie(http.cookies.SimpleCookie):
 	def load(self, rawdata):
 		return self._BaseCookie__parse_string(rawdata, self.CookiePattern)
 
+def json_object_pairs_hook(p):
+	return {
+		sys.intern(k) if type(k) is str else k:
+		sys.intern(v) if type(v) is str else v
+		for k, v in p
+	}
+
+json_load_args = {"object_pairs_hook": json_object_pairs_hook}
+
 class Sizes:
 	def __init__(self, sizes):
 		self.sizes = sizes
@@ -654,7 +663,7 @@ class DB:
 			prefix = f.read(len(expected_prefix))
 			if isinstance(prefix, bytes): prefix = prefix.decode("utf-8")
 			assert prefix == expected_prefix, (prefix, expected_prefix)
-			return json.load(f)
+			return json.load(f, **json_load_args)
 
 	def load(self, base):
 		if not isinstance(base, str):
@@ -1165,7 +1174,7 @@ class DB:
 	def get_gql_vars(self, context):
 		q = self.get_query(context)
 		if q and "variables" in q:
-			return json.loads(q["variables"][0])
+			return json.loads(q["variables"][0], **json_load_args)
 
 	def apply_context(self, context):
 		self.time = context and context["timeStamp"]
@@ -1485,7 +1494,7 @@ class DB:
 
 		item_file = item.open()
 		try:
-			data = json.load(item_file)
+			data = json.load(item_file, **json_load_args)
 		except:
 			print("not json", fname, path)
 			return

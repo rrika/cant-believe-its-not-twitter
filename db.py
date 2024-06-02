@@ -44,6 +44,14 @@ def json_object_pairs_hook(p):
 
 json_load_args = {"object_pairs_hook": json_object_pairs_hook}
 
+dicts = {}
+
+def intern_dict(d):
+	if not d:
+		return d
+	f = frozenset(d)
+	return dicts.setdefault(f, d)
+
 class Sizes:
 	def __init__(self, sizes):
 		self.sizes = sizes
@@ -903,6 +911,24 @@ class DB:
 			reply_to_screen_name = tweet.get("in_reply_to_screen_name", None)
 			if reply_to_screen_name:
 				self.profiles.setdefault(int(reply_to_user), {})["screen_name"] = reply_to_screen_name
+		if "entities" in tweet:
+			if "media" in tweet["entities"]:
+				for media in tweet["entities"]["media"]:
+					if "sizes" in media:
+						media["sizes"] = {k: intern_dict(v) for k, v in media["sizes"].items()}
+					if "features" in media:
+						del media["features"]
+					if "original_info" in media:
+						del media["original_info"]
+		if "extended_entities" in tweet:
+			if "media" in tweet["extended_entities"]:
+				for media in tweet["extended_entities"]["media"]:
+					if "sizes" in media:
+						media["sizes"] = {k: intern_dict(v) for k, v in media["sizes"].items()}
+					if "features" in media:
+						del media["features"]
+					if "original_info" in media:
+						del media["original_info"]
 		if twid in self.tweets:
 			self.tweets[twid].update(tweet)
 			dbtweet = self.tweets[twid]

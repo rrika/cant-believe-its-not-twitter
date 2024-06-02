@@ -960,7 +960,8 @@ class DB:
 			assert frozenset(tweet.keys()) in {
 				frozenset({"__typename", "tweet", "limitedActionResults"}),
 				frozenset({"__typename", "tweet", "tweetInterstitial"}),
-				frozenset({"__typename", "tweet", "limitedActionResults", "tweetInterstitial"})
+				frozenset({"__typename", "tweet", "limitedActionResults", "tweetInterstitial"}),
+				frozenset({"__typename", "tweet", "limitedActionResults", "softInterventionPivot"})
 			}, json.dumps(tweet)
 			heuristically_circle_tweet = "Circle" in json.dumps(tweet.get("limitedActionResults"))
 			tweet = tweet["tweet"]
@@ -979,9 +980,10 @@ class DB:
 		if card:
 			card = card["legacy"]
 			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
-				"poll3choice_text_only", "poll4choice_text_only", "unified_card") or \
+				"poll3choice_text_only", "poll4choice_text_only", "unified_card", "promo_video_convo") or \
 				card["name"].endswith(":live_event") or \
 				card["name"].endswith(":broadcast") or \
+				card["name"].endswith(":message_me") or \
 				card["name"].endswith(":audiospace"), (tweet, card, card["name"])
 			card["binding_values"] = {
 				keyvalue["key"]: keyvalue["value"]
@@ -1050,6 +1052,7 @@ class DB:
 			assert display_type in ("Tweet", "SelfThread", "MediaGrid", "CondensedTweet"), display_type
 			tweet_results = content["tweet_results"]
 			if not tweet_results: # happens in /Likes
+				content.pop("hasModeratedReplies", None)
 				assert content == {'itemType': 'TimelineTweet', '__typename': 'TimelineTweet', 'tweet_results': {}}, content
 				return
 			tweet = tweet_results["result"]
@@ -1076,6 +1079,8 @@ class DB:
 		elif ct == "TimelineLabel": # eg. More replies
 			pass # todo
 		elif ct == "TimelinePrompt":
+			pass # todo
+		elif ct == "TimelineSpelling":
 			pass # todo
 		else:
 			assert False, ct
@@ -1128,6 +1133,8 @@ class DB:
 					it = (int(entry["sortIndex"]),) + it
 				layout.append(it)
 			elif t == "TimelineReplaceEntry":
+				pass # todo
+			elif t == "TimelineShowCover":
 				pass # todo
 			elif t == "TimelineAddToModule":
 				# i["moduleEntryId"]
@@ -1219,6 +1226,8 @@ class DB:
 			self.add_with_instructions(tweet_timeline["timeline"])
 		elif path.endswith("/UserMedia"):
 			media_timeline = self.add_user(data["user"]["result"], give_timeline_v2=True)
+			if media_timeline == {}:
+				return
 			self.add_with_instructions(media_timeline["timeline"])
 		elif path.endswith("/Likes"):
 			gql_vars = self.get_gql_vars(context) or {}
@@ -1386,6 +1395,12 @@ class DB:
 			pass # todo
 		elif path.endswith("/DeleteBookmark"):
 			pass # todo
+		elif path.endswith("/CommunitiesFetchOneQuery"):
+			pass # todo
+		elif path.endswith("/BlueVerifiedProfileEditCalloutQuery"):
+			pass # todo
+		elif path.endswith("/ReportDetailQuery"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1431,7 +1446,7 @@ class DB:
 			assert icon_id in (
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
 				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
-				"histogram_icon"), icon_id
+				"histogram_icon", "bird_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

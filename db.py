@@ -120,7 +120,7 @@ card_image_sizes = Sizes([
 	(1200, 1200, "medium"), # assume it means the same thing as in media_sizes
 	(2048, 2048, "2048x2048_2_exp"),
 	(2048, 2048, "large"), # assume it means the same thing as in media_sizes
-	(4096, 4096, "orig")
+	(4096, 4096, "4096x4096", "orig")
 ])
 
 no_sizes = Sizes([
@@ -246,7 +246,9 @@ def decode_twimg(orig_url):
 		ext = m.group(5)
 		default_size = "small"
 
-	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png":
+	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png" or \
+	     orig_url == "https://pbs.twimg.com/static/dmca/dmca-med.jpg":
+
 		m = re.fullmatch(r"(/static/.*)", url.path)
 		sizes = no_sizes
 		default_size = None
@@ -1436,6 +1438,16 @@ class DB:
 			pass # todo
 		elif path.endswith("/ReportDetailQuery"):
 			pass # todo
+		elif path.endswith("/BirdwatchFetchAuthenticatedUserProfile"):
+			pass # todo
+		elif path.endswith("/BirdwatchFetchOneNote"):
+			pass # todo
+		elif path.endswith("/BirdwatchFetchAliasSelfSelectStatus"):
+			pass # todo
+		elif path.endswith("/BirdwatchFetchNotes"):
+			pass # todo
+		elif path.endswith("/usePricesQuery"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1481,7 +1493,7 @@ class DB:
 			assert icon_id in (
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
 				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
-				"histogram_icon", "bird_icon"), icon_id
+				"histogram_icon", "bird_icon", "spaces_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

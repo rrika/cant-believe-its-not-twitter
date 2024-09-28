@@ -531,6 +531,9 @@ class DB:
 		self.time = None
 		self.uid = None
 
+		# settings
+		self.ignore_urls = set()
+
 	def sort_profiles(self):
 		# collect by user
 		for twid, tweet in self.tweets.items():
@@ -1543,6 +1546,9 @@ class DB:
 		url = context["url"]
 		path = urlparse(url).path
 
+		if url in self.ignore_urls:
+			return
+
 		if path in (
 			"/1.1/account/multi/list.json",
 			"/1.1/account/multi/switch.json",
@@ -1687,6 +1693,11 @@ paths.sort(key=lambda path: 1 if path.endswith(".har") else 0)
 # load inputs
 
 db = DB()
+
+if os.path.exists("ignore.txt"):
+	with open("ignore.txt") as f:
+		ignore_urls = [line.strip() for line in f.readlines()]
+	db.ignore_urls = set(filter(None, ignore_urls))
 
 for path in paths:
 	print(path)

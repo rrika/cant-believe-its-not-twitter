@@ -129,10 +129,13 @@ no_sizes = Sizes([
 
 def decode_twimg(orig_url):
 	url = urlparse(orig_url)
-	if url.netloc == "abs.twimg.com" or orig_url == "https://pbs.twimg.com/cards/player-placeholder.png":
+	if url.netloc == "abs.twimg.com" or orig_url in (
+		"https://pbs.twimg.com/cards/player-placeholder.png",
+		"https://pbs.twimg.com/lex/placeholder_live_nomargin.png"
+	):
 		assert url.path == "" or url.path[0] == "/"
 		base = url.netloc + url.path
-		return base, (None, None), (None, None)
+		return base, (None, None), (no_sizes, None)
 
 	elif url.netloc == "video.twimg.com":
 		if url.path.startswith("/ext_tw_video/"):
@@ -245,6 +248,12 @@ def decode_twimg(orig_url):
 		assert m, url.path
 		ext = m.group(5)
 		default_size = "small"
+
+	elif url.path.startswith("/dm_video_preview/"):
+		m = re.fullmatch(r"(/dm_video_preview/([0-9]+)/img/([A-Za-z0-9_\-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
+		assert m, url.path
+		ext = m.group(5)
+		default_size = None
 
 	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png" or \
 	     orig_url == "https://pbs.twimg.com/static/dmca/dmca-med.jpg":
@@ -1079,6 +1088,8 @@ class DB:
 	def add_item_content(self, content, name, cursors=None):
 		ct = content["__typename"]
 		if ct == "TimelineUser":
+			if "result" not in content["user_results"]:
+				return
 			user = content["user_results"]["result"]
 			self.add_user(user)
 			return int(user["rest_id"])
@@ -1245,7 +1256,8 @@ class DB:
 				return
 			self.add_user(data["user"]["result"])
 		elif path.endswith("/HomeLatestTimeline"):
-			self.add_with_instructions(data["home"]["home_timeline_urt"])
+			if "home_timeline_urt" in data["home"]:
+				self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/HomeTimeline"):
 			self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/TweetDetail"):
@@ -1344,7 +1356,8 @@ class DB:
 		elif path.endswith("/CheckTweetForNudge"):
 			assert data == {"create_nudge":{}}
 		elif path.endswith("/CreateTweet"):
-			self.add_tweet(data["create_tweet"]["tweet_results"]["result"])
+			if "create_tweet" in data:
+				self.add_tweet(data["create_tweet"]["tweet_results"]["result"])
 		elif path.endswith("/UsersByRestIds"):
 			for user in data["users"]:
 				self.add_user(user)
@@ -1400,6 +1413,8 @@ class DB:
 			pass # todo
 		elif path.endswith("/TweetResultByRestId"):
 			pass # todo
+		elif path.endswith("/TweetResultsByRestIds"):
+			pass # todo
 		elif path.endswith("/ModeratedTimeline"):
 			pass # todo
 		elif path.endswith("/PremiumSignUpQuery"):
@@ -1448,6 +1463,28 @@ class DB:
 			pass # todo
 		elif path.endswith("/usePricesQuery"):
 			pass # todo
+		elif path.endswith("/useVerifiedOrgFeatureHelperQuery"):
+			pass # todo
+		elif path.endswith("/useProductSkuQuery"):
+			pass # todo
+		elif path.endswith("/TranslationFeedbackProvideFeedbackMutation"):
+			pass # todo
+		elif path.endswith("/UserHighlightsTweets"):
+			pass # todo
+		elif path.endswith("/UserAccountLabel"):
+			pass # todo
+		elif path.endswith("/GenericTimelineById"):
+			pass # todo
+		elif path.endswith("/BookmarkSearchTimeline"):
+			pass # todo
+		elif path.endswith("/useRelayDelegateDataPendingQuery"):
+			pass # todo
+		elif path.endswith("/TrendRelevantUsers"):
+			pass # todo
+		elif path.endswith("/AiTrendByRestId"):
+			pass # todo
+		elif path.endswith("/FollowHostButtonQuery"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1493,7 +1530,8 @@ class DB:
 			assert icon_id in (
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
 				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
-				"histogram_icon", "bird_icon", "spaces_icon"), icon_id
+				"histogram_icon", "bird_icon", "spaces_icon", "live_icon",
+				"birdwatch_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

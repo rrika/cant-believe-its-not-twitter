@@ -389,7 +389,7 @@ let TweetImage = (props: {
 
 let TweetVideo = (props: {entity: MediaEntity}) => {
 	for (let variant of props.entity.video_info.variants) {
-		if (variant.content_type == "video/mp4" && variant.url != null)
+		if (variant.url != null)
 			return <video
 				src={variant.url}
 				poster={props.entity.media_url_https}
@@ -398,6 +398,7 @@ let TweetVideo = (props: {entity: MediaEntity}) => {
 				loop={props.entity.type == "animated_gif"}
 			/>;
 	}
+	return <div>No video variant found</div>;
 };
 
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

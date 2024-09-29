@@ -1,6 +1,7 @@
 from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory, InWarc # db will process sys.argv
 
 import os.path, time, datetime, sys
+from urllib.parse import urlparse, urlunparse
 server_path = os.path.dirname(__file__)
 sys.path.append(server_path + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
@@ -17,6 +18,9 @@ class ClientAPI:
 	def urlmap(self, url):
 		item, cacheable = self.db.media.lookup(url)
 		if item:
+			up = urlparse(url)
+			if up.path.endswith(".m3u8"):
+				url = up._replace(path=up.path+".mp4").geturl()
 			return "/media" + url[7:] # /media/pbs.twitter.com/...
 		if use_twitter_cdn_for_images:
 			return url

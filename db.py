@@ -421,6 +421,8 @@ class MediaStore:
 	def lookup(self, url):
 		if url is None:
 			return None, False
+		if urlparse(url).path.endswith(".m3u8.mp4"): # HACK
+			return self.lookup_video(url)
 		cache_key, (fmt, variant_name), (sizes, _) = decode_twimg(url)
 		imageset = self.media_by_url.get(cache_key, None)
 		if imageset:

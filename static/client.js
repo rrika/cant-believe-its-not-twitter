@@ -219,9 +219,10 @@ let Poll = (props) => {
 let TweetImage = (props) => h("div", { class: "t20230624-image-div", style: { "background-image": `url('${props.src}')` }, onClick: props.onClick, title: props.title });
 let TweetVideo = (props) => {
     for (let variant of props.entity.video_info.variants) {
-        if (variant.content_type == "video/mp4" && variant.url != null)
+        if (variant.url != null)
             return h("video", { src: variant.url, poster: props.entity.media_url_https, controls: true, preload: "none", loop: props.entity.type == "animated_gif" });
     }
+    return h("div", null, "No video variant found");
 };
 let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let dateFormat = (datestr) => {

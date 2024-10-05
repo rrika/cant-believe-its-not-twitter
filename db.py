@@ -1729,9 +1729,16 @@ class DB:
 		if any_missing:
 			print("\nfor firefox consider setting devtools.netmonitor.responseBodyLimit higher\n")
 
-	def load_warc(self, fname):
-		f = open(fname, "rb") # leave file open as long as referenced by InWarc objects
-		for (wreq, req), (wres, res, item) in read_warc(f, responses=self.warc_responses):
+	def load_warc(self, fname, f_offset=None):
+		if not f_offset:
+			f = open(fname, "rb") # leave file open as long as referenced by InWarc objects
+		else:
+			f = f_offset[0]
+			f.seek(f_offset[1])
+			del f_offset
+		r = read_warc(f, responses=self.warc_responses)
+		end = f.tell()
+		for (wreq, req), (wres, res, item) in r:
 			cookies = None
 			for line in req[1:]:
 				m = header_re.match(line)
@@ -1755,6 +1762,8 @@ class DB:
 			if "//localhost" in context["url"]:
 				continue
 			self.load_api(fname, item, context)
+
+		return (f, end)
 
 header_re = re.compile(rb"(.*): (.*)\r\n")
 

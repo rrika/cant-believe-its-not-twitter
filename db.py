@@ -617,19 +617,21 @@ class DB:
 		self.profiles = {}
 		self.followers = {} # could be part of .profiles
 		self.followings = {} # could be part of .profiles
-		self.by_user = {}
 		self.user_by_handle = {}
 		self.media = MediaStore()
 		self.har = HarStore("harstore")
 		self.warc_responses = {} # to allow warc references across files
 		self.likes_snapshots = {}
-		self.likes_sorted = {}
 		self.likes_unsorted = {}
 		self.bookmarks_map = {}
-		self.bookmarks_sorted = {}
-		self.interactions_sorted = {}
 		self.observers = set()
 		self.conversations = {}
+
+		# indices
+		self.by_user = None
+		self.likes_sorted = None
+		self.bookmarks_sorted = None
+		self.interactions_sorted = None
 
 		# context
 		self.time = None
@@ -639,6 +641,11 @@ class DB:
 		self.ignore_urls = set()
 
 	def sort_profiles(self):
+		self.by_user = {}
+		self.likes_sorted = {}
+		self.bookmarks_sorted = {}
+		self.interactions_sorted = {}
+
 		# collect by user
 		for twid, tweet in self.tweets.items():
 			uid = tweet.get("user_id_str", None)

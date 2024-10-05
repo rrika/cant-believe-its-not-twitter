@@ -1592,6 +1592,8 @@ class DB:
 			pass # todo
 		elif path.endswith("/FollowHostButtonQuery"):
 			pass # todo
+		elif path.endswith("/useFetchAnalyticsQuery"):
+			pass # todo
 		else:
 			assert False, path
 

@@ -1020,6 +1020,9 @@ class DB:
 					tweet["original_id"] = tid
 					self.add_legacy_tweet_2019(tweet)
 
+	def reload(self):
+		pass # for user to override
+
 	# general loading
 
 	def add_legacy_tweet(self, tweet):
@@ -1769,48 +1772,51 @@ header_re = re.compile(rb"(.*): (.*)\r\n")
 
 # gather inputs
 
-paths = []
+def gather_paths(argv):
+	paths = []
 
-def add_file(path, explicit):
-	ext = os.path.splitext(path)[1]
-	if ext in (".zip", ".har", ".warc", ".open"):
-		paths.append(path)
-	if ext == ".txt" and explicit:
-		add_list(path)
-
-def add_path(path):
-	if os.path.isdir(path):
-		is_archive = os.path.exists(os.path.join(path, "data")) or os.path.exists(os.path.join(path, "tweet.js"))
-		if is_archive:
+	def add_file(path, explicit):
+		ext = os.path.splitext(path)[1]
+		if ext in (".zip", ".har", ".warc", ".open"):
 			paths.append(path)
+		if ext == ".txt" and explicit:
+			add_list(path)
+
+	def add_path(path):
+		if os.path.isdir(path):
+			is_archive = os.path.exists(os.path.join(path, "data")) or os.path.exists(os.path.join(path, "tweet.js"))
+			if is_archive:
+				paths.append(path)
+			else:
+				for fname in sorted(os.listdir(path)): # sort to keep timestamped inputs in order
+					add_file(os.path.join(path, fname) if path != "." else fname, explicit=False)
 		else:
-			for fname in os.listdir(path):
-				add_file(os.path.join(path, fname) if path != "." else fname, explicit=False)
+			add_file(path, explicit=True)
+
+	def add_list(path):
+		try:
+			with open(path) as f:
+				lines = f.readlines()
+		except:
+			return
+
+		for l in lines:
+			l = l.strip()
+			if l and not l.startswith("#"):
+				add_path(l)
+
+	if argv:
+		for arg in argv:
+			add_path(arg)
+
 	else:
-		add_file(path, explicit=True)
+		add_list("exports.txt")
+		add_path(".")
 
-def add_list(path):
-	try:
-		with open(path) as f:
-			lines = f.readlines()
-	except:
-		return
+	# archive data is broken for RTs so apply HAR later to overwrite that
+	paths.sort(key=lambda path: 1 if path.endswith(".har") else 0)
 
-	for l in lines:
-		l = l.strip()
-		if l and not l.startswith("#"):
-			add_path(l)
-
-if len(sys.argv) >= 2:
-	for arg in sys.argv[1:]:
-		add_path(arg)
-
-else:
-	add_list("exports.txt")
-	add_path(".")
-
-# archive data is broken for RTs so apply HAR later to overwrite that
-paths.sort(key=lambda path: 1 if path.endswith(".har") else 0)
+	return paths
 
 # load inputs
 
@@ -1821,24 +1827,42 @@ if os.path.exists("ignore.txt"):
 		ignore_urls = [line.strip() for line in f.readlines()]
 	db.ignore_urls = set(filter(None, ignore_urls))
 
-for path in paths:
+warc_open = {}
+
+def load_single(path):
 	print(path)
 	if path.endswith(".har"):
 		db.har.add(path, skip_if_exists=True)
 		db.load_har(path)
-	elif path.endswith(".warc") or path.endswith(".warc.open"):
-		db.load_warc(path)
+	elif path.endswith(".warc"):
+		db.load_warc(path, warc_open.pop(path+".open", None))
+	elif path.endswith(".warc.open"):
+		warc_open[path] = db.load_warc(path, warc_open.get(path, None))
 	elif path.endswith(".zip"):
 		db.load(zipfile.ZipFile(path))
 	else:
 		db.load(path)
 
-# post-processing
+paths = []
+def db_reload():
+	global paths
+	new_paths = gather_paths(sys.argv[1:])
+	for path in new_paths:
+		if path not in paths or path.endswith(".warc.open"):
+			load_single(path)
+	paths = new_paths
 
-db.sort_profiles()
+	# post-processing
 
-# print how many tweets by who are in the archive
-z = [(len(v), db.profiles[k]["screen_name"] if k in db.profiles else str(k), k) for k, v in db.by_user.items()]
-z.sort()
-for count, name, uid in z:
-	print("{:4d} {}".format(count, name))
+	db.sort_profiles()
+
+	# print how many tweets by who are in the archive
+	z = [(len(v), db.profiles[k]["screen_name"] if k in db.profiles else str(k), k) for k, v in db.by_user.items()]
+	z.sort()
+	for count, name, uid in z:
+		print("{:4d} {}".format(count, name))
+
+db.reload = db_reload
+
+db.reload()
+

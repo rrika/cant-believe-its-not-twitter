@@ -394,6 +394,10 @@ def conversation(cid):
 		"conversation": ca.conversation(cid)
 	}
 
+@route('/api/reload')
+def reload():
+	db.reload()
+
 @route('/fonts/<path:path>')
 def resources_20230628(path):
 	return static_file(path, root=server_path+'/static/20230628/fonts')

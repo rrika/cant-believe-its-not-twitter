@@ -292,7 +292,7 @@ def decode_twimg(orig_url):
 	size = size or default_size
 
 	assert size is None or sizes.valid_name(size), (orig_url, size, sizes)
-	assert ext is None or ext.lower() in ("jpg", "jpeg", "png", "gif"), ext # more allowed when part of filename
+	assert ext is None or ext.lower() in ("jpg", "jpeg", "png", "gif", "bmp"), ext # more allowed when part of filename
 	assert not query, orig_url
 	fullres = "https://pbs.twimg.com"+fullres_fmt.format(base=base, ext=ext, size=size)
 
@@ -1369,7 +1369,8 @@ class DB:
 		elif path.endswith("/DMPinnedInboxQuery"):
 			assert data == {"labeled_conversation_slice":{"items":[],"slice_info":{}}}
 		elif path.endswith("/UserByRestId"):
-			self.add_user(data["user"]["result"])
+			if "result" in data["user"]:
+				self.add_user(data["user"]["result"])
 		elif path.endswith("/UserByScreenName"):
 			if data == {}:
 				return
@@ -1605,6 +1606,16 @@ class DB:
 		elif path.endswith("/FollowHostButtonQuery"):
 			pass # todo
 		elif path.endswith("/useFetchAnalyticsQuery"):
+			pass # todo
+		elif path.endswith("/AuthenticatePeriscope"):
+			pass # todo
+		elif path.endswith("/QuickPromoteEligibility"):
+			pass # todo
+		elif path.endswith("/TweetActivityQuery"):
+			pass # todo
+		elif path.endswith("/PremiumContentQuery"):
+			pass # todo
+		elif path.endswith("/SubscriptionProductDetails"):
 			pass # todo
 		else:
 			assert False, path

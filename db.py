@@ -1,5 +1,5 @@
 import sys, json, os, base64, os.path, re, zipfile, mimetypes, http.cookies
-import datetime
+import datetime, importlib.util
 import contextlib, tempfile, subprocess # for video reencoding
 import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
@@ -1790,6 +1790,8 @@ def gather_paths(argv):
 		ext = os.path.splitext(path)[1]
 		if ext in (".zip", ".har", ".warc", ".open"):
 			paths.append(path)
+		if ext == ".py" and explicit:
+			paths.append(path)
 		if ext == ".txt" and explicit:
 			add_list(path)
 
@@ -1839,6 +1841,7 @@ if os.path.exists("ignore.txt"):
 	db.ignore_urls = set(filter(None, ignore_urls))
 
 warc_open = {}
+modules = {}
 
 def load_single(path):
 	print(path)
@@ -1851,6 +1854,16 @@ def load_single(path):
 		warc_open[path] = db.load_warc(path, warc_open.get(path, None))
 	elif path.endswith(".zip"):
 		db.load(zipfile.ZipFile(path))
+	elif path.endswith(".py"):
+		module = modules.get(path, None)
+		if module:
+			spec = module.__spec__
+		else:
+			spec = importlib.util.spec_from_file_location("__data_source__", path)
+			module = importlib.util.module_from_spec(spec)
+			module.db = db
+			modules[path] = module
+		spec.loader.exec_module(module)
 	else:
 		db.load(path)
 
@@ -1859,7 +1872,7 @@ def db_reload():
 	global paths
 	new_paths = gather_paths(sys.argv[1:])
 	for path in new_paths:
-		if path not in paths or path.endswith(".warc.open"):
+		if path not in paths or path.endswith(".warc.open") or path.endswith(".py"):
 			load_single(path)
 	paths = new_paths
 

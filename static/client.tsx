@@ -643,7 +643,7 @@ let Tweet = (props: TweetProps) => {
 	let p = props.u;
 	let id_str = props.t.id_str;
 	let user_id_str = props.t.user_id_str;
-	if (!user_id_str)
+	if (!p)
 		return <AnonymousTweet t={t}/>;
 
 	let selectTweet = (e: JSX.TargetedMouseEvent<HTMLElement>) => {

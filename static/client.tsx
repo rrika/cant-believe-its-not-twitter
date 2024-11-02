@@ -423,12 +423,14 @@ let dateFormat = (datestr: string | number) => {
 
 let dateFormat2 = (datestr: string | number) => {
 	let date = new Date(datestr);
-	return `${date.getHours()}:${date.getMinutes()} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+	let minutes = date.getMinutes().toString().padStart(2, '0');
+	return `${date.getHours()}:${minutes} · ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
 let dateFormat3 = (datestr: string | number) => {
 	let date = new Date(datestr);
-	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${date.getHours()}:${date.getMinutes()}`;
+	let minutes = date.getMinutes().toString().padStart(2, '0');
+	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${date.getHours()}:${minutes}`;
 };
 
 let SimpleTweetText = (props: {tweet: TweetInfo}) => {

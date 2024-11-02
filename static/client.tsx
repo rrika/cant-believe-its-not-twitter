@@ -696,8 +696,8 @@ let Tweet = (props: TweetProps) => {
 				width = m0.sizes.large.w;
 				height = m0.sizes.large.h;
 			}
-			let columnWidth = 506;
-			let maxHeight = 510;
+			let columnWidth = props.focus ? 566 : 506;
+			let maxHeight = props.focus ? 900 /* <- guessed */ : 510;
 			let aspect = width / height;
 			if (aspect < 0.75) aspect = 0.75;
 			if (aspect > 5) aspect = 5;

@@ -1,6 +1,6 @@
 from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory, InWarc # db will process sys.argv
 
-import os.path, time, datetime, sys
+import os.path, time, datetime, sys, cProfile, pstats, io
 from urllib.parse import urlparse, urlunparse
 server_path = os.path.dirname(__file__)
 sys.path.append(server_path + "/vendor") # use bundled copy of bottle, if system has none
@@ -411,7 +411,17 @@ def conversation(cid):
 
 @route('/api/reload')
 def reload():
-	db.reload()
+	if False:
+		db.reload()
+		return
+
+	p = cProfile.Profile()
+	p.runcall(db.reload)
+	s = pstats.Stats(p)
+	s.stream = io.StringIO()
+	s.strip_dirs().sort_stats("cumulative").print_stats()
+	return HTTPResponse(s.stream.getvalue(), status=200, **{"Content-Type": "text/plain"})
+
 
 @route('/fonts/<path:path>')
 def resources_20230628(path):

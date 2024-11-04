@@ -662,7 +662,7 @@ class DB:
 		for uid in set(self.likes_snapshots.keys()) | set(self.likes_unsorted.keys()):
 			likes_snapshots = self.likes_snapshots.get(uid, [])
 			likes_snapshots = sorted(likes_snapshots, key=lambda snap: -snap.time)
-			if True:
+			if False:
 				continue_index = {}
 				for snap in likes_snapshots:
 					if hasattr(snap, "cursor_bottom"):

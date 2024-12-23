@@ -452,7 +452,10 @@ class MediaStore:
 		sub_m3u_urls = [line for line in top_m3u.splitlines() if line and not line.startswith("#")]
 
 		for sub_m3u_url in sub_m3u_urls:
-			with get(sub_m3u_url).open() as sub_m3u_file:
+			sub_m3u_item = get(sub_m3u_url)
+			if not sub_m3u_item:
+				continue
+			with sub_m3u_item.open() as sub_m3u_file:
 				sub_m3u = sub_m3u_file.read()
 			if isinstance(sub_m3u, bytes):
 				sub_m3u = sub_m3u.decode("ascii")

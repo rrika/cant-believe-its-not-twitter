@@ -1567,7 +1567,9 @@ class DB:
 		elif path.endswith("/TweetResultByRestId"):
 			pass # todo
 		elif path.endswith("/TweetResultsByRestIds"):
-			pass # todo
+			for tweet_result in data["tweetResult"]:
+				if "result" in tweet_result:
+					self.add_tweet(tweet_result["result"])
 		elif path.endswith("/ModeratedTimeline"):
 			pass # todo
 		elif path.endswith("/PremiumSignUpQuery"):

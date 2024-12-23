@@ -90,6 +90,7 @@ profile_images_sizes = Sizes([
 profile_banners_sizes = Sizes([ # aspect ratio 3:1
 	(300, 100, "/300x100"),
 	(600, 200, "/600x200"),
+	(626, 313, "/ipad"),
 	(1080, 360, "/1080x360"),
 	(1500, 500, "/1500x500"),
 	(4096, 4096, "")
@@ -193,7 +194,7 @@ def decode_twimg(orig_url):
 		assert not query, query
 
 	elif url.path.startswith("/profile_banners/"):
-		m = re.fullmatch(r"(/profile_banners/([0-9]+)/([0-9]+))(/(300x100|600x200|1080x360|1500x500))?", url.path)
+		m = re.fullmatch(r"(/profile_banners/([0-9]+)/([0-9]+))(/(300x100|600x200|1080x360|1500x500|ipad))?", url.path)
 		assert m, url.path
 		size = m.group(4) or ""
 		sizes = profile_banners_sizes
@@ -1166,7 +1167,7 @@ class DB:
 		if card:
 			card = card["legacy"]
 			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
-				"poll3choice_text_only", "poll4choice_text_only", "unified_card", "promo_video_convo") or \
+				"poll3choice_text_only", "poll4choice_text_only", "unified_card", "promo_video_convo", "amplify") or \
 				card["name"].endswith(":live_event") or \
 				card["name"].endswith(":broadcast") or \
 				card["name"].endswith(":message_me") or \
@@ -1648,6 +1649,8 @@ class DB:
 		elif path.endswith("/PremiumContentQuery"):
 			pass # todo
 		elif path.endswith("/SubscriptionProductDetails"):
+			pass # todo
+		elif path.endswith("/useFetchProfileSections_profileQuery"):
 			pass # todo
 		else:
 			assert False, path

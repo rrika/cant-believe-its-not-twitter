@@ -159,6 +159,11 @@ def decode_twimg(orig_url):
 			assert m, url.path
 			base = url.netloc + url.path # TODO
 
+		elif url.path.startswith("/dm_video/"):
+			m = re.fullmatch(r"/dm_video/[0-9]+/.*/([A-Za-z0-9_-]+)\.(mp4|m4s|m3u8)", url.path)
+			assert m, url.path
+			base = url.netloc + url.path # TODO
+
 		elif url.path.startswith("/amplify_video/"):
 			#m = re.fullmatch(r"/amplify_video/[0-9]+/(?:pl|vid(?:/avc1)?/[0-9]+x[0-9]+)/([A-Za-z0-9_-]+)\.(mp4|m3u8)", url.path)
 			m = re.fullmatch(r"/amplify_video/[0-9]+/.*/([A-Za-z0-9_-]+)\.(mp4|m4s|m3u8)", url.path)
@@ -265,6 +270,13 @@ def decode_twimg(orig_url):
 		m = re.fullmatch(r"(/dm_video_preview/([0-9]+)/img/([A-Za-z0-9_\-]+))(\.([A-Za-z0-9]{1,5}))?", url.path)
 		assert m, url.path
 		ext = m.group(5)
+		default_size = None
+
+	elif url.path.startswith("/grok-img-share/"):
+		m = re.fullmatch(r"/grok-img-share/([0-9]+)\.([A-Za-z0-9]{1,5})", url.path)
+		assert m, url.path
+		ext = m.group(2)
+		sizes = no_sizes
 		default_size = None
 
 	elif orig_url == "https://pbs.twimg.com/static/dmca/video-preview-img.png" or \
@@ -1401,8 +1413,9 @@ class DB:
 				return
 			self.add_user(data["user"]["result"])
 		elif path.endswith("/HomeLatestTimeline"):
-			if "home_timeline_urt" in data["home"]:
-				self.add_with_instructions(data["home"]["home_timeline_urt"])
+			if "home" in data:
+				if "home_timeline_urt" in data["home"]:
+					self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/HomeTimeline"):
 			self.add_with_instructions(data["home"]["home_timeline_urt"])
 		elif path.endswith("/TweetDetail"):
@@ -1657,6 +1670,16 @@ class DB:
 			pass # todo
 		elif path.endswith("/useFetchProfileSections_profileQuery"):
 			pass # todo
+		elif path.endswith("/GrokHome"):
+			pass # todo
+		elif path.endswith("/Viewer"):
+			pass # todo
+		elif path.endswith("/ViewerUserQuery"):
+			pass # todo
+		elif path.endswith("/affiliatesQuery"):
+			pass # todo
+		elif path.endswith("/BenefitsBadgeCardQuery"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1703,7 +1726,7 @@ class DB:
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
 				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
 				"histogram_icon", "bird_icon", "spaces_icon", "live_icon",
-				"birdwatch_icon"), icon_id
+				"birdwatch_icon", "lightning_bolt_icon", "trending_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

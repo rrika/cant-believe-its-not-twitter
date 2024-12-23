@@ -251,8 +251,10 @@ def paginated_tweets(response):
 	qfrom = int(q.get("from", 0))
 	quntil = int(q.get("until", 100000000 + time.time()*1000))
 	qby = q.get("by", None)
+	qrev = "rev" in q
 
-	limit = 500
+	limit = 300
+	limit = int(q.get("limit", limit))
 
 	if "tweets" in response:
 		tweets = response["tweets"]
@@ -269,6 +271,9 @@ def paginated_tweets(response):
 			histogram_rt["max_tweets"] = histogram_ot["max_tweets"] = max(
 				histogram_rt["max_tweets"], histogram_ot["max_tweets"])
 		response["histograms"] = [histogram_rt, histogram_ot]
+
+		if qrev:
+			tweets = tweets[::-1]
 
 		if qby in (None, "rt"):
 			response["tweets"] = [
@@ -288,14 +293,17 @@ def paginated_tweets(response):
 					rtid for rtid, tweet in tweets
 					if not tweet or qfrom <= tweet_date({"id_str": str(rtid)}).timestamp()*1000 < quntil]
 				last_rtid = only_rtids[max(limit-1, 0)]
-				next_until = tweet_date({"id_str": str(last_rtid)}).timestamp()*1000
+				boundary = tweet_date({"id_str": str(last_rtid)}).timestamp()*1000
 			elif qby == "ot":
 				last_tweet = response["tweets"][-1]
-				next_until = tweet_date(last_tweet).timestamp()*1000
+				boundary = tweet_date(last_tweet).timestamp()*1000
 			else:
 				assert False
 
-			final_qs = query_string_substitute(request.query_string, "until", str(math.ceil(next_until)))
+			if qrev:
+				final_qs = query_string_substitute(request.query_string, "from", str(math.floor(boundary)+1))
+			else:
+				final_qs = query_string_substitute(request.query_string, "until", str(math.ceil(boundary)))
 			response["final_link"] = {"href": "?"+final_qs, "content": "Load more"}
 
 		response["tweets"] = response["tweets"][:limit]

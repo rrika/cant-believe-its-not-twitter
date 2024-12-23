@@ -879,6 +879,9 @@ class App extends Component {
             parts.push(...(this.props.profiles || []).map(profile => h(ProfileItem, { key: profile.user_id_str, p: profile })));
             parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
                 h(ShyTweet, { key: tweet.id_str, hideProtectedAccounts: this.state.hideProtectedAccounts, t: tweet, u: tweet.user, focus: tweet.id_str == this.props.focusTweetId, showMediaViewer: showMediaViewer, showReplyingTo: !!top }) : []));
+            if (this.props.final_link)
+                parts.push(h("div", { class: "timeline-system-message" },
+                    h("a", { class: "deemphasized-link", href: this.props.final_link.href }, this.props.final_link.content)));
             let timeline = h("div", { class: `common-frame-600 theme-${this.state.theme}` },
                 h("div", { class: "t20230403-timeline", tabIndex: 0 }, parts));
             let setTheme = (theme) => (ev) => {

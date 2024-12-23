@@ -129,7 +129,8 @@ type AppProps = {
 	tab: number,
 	histograms?: HistogramData[],
 	conversations?: ConversationInfo[],
-	conversation?: Conversation
+	conversation?: Conversation,
+	final_link?: {href: string, content: string}
 };
 
 class Logic {
@@ -1178,6 +1179,10 @@ class App extends Component<AppProps, AppState> {
 			parts.push(...(this.props.profiles || []).map(profile => <ProfileItem key={profile.user_id_str} p={profile}/>));
 			parts.push(...(this.props.tweets || []).map(tweet => tweet && tweet.full_text ?
 				<ShyTweet key={tweet.id_str} hideProtectedAccounts={this.state.hideProtectedAccounts} t={tweet} u={tweet.user} focus={tweet.id_str == this.props.focusTweetId} showMediaViewer={showMediaViewer} showReplyingTo={!!top}/> : []));
+			if (this.props.final_link)
+				parts.push(<div class="timeline-system-message">
+					<a class="deemphasized-link" href={this.props.final_link.href}>{this.props.final_link.content}</a>
+				</div>);
 			let timeline = <div class={`common-frame-600 theme-${this.state.theme}`}>
 				<div class="t20230403-timeline" tabIndex={0}>
 					{parts}

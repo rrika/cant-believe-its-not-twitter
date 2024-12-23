@@ -340,6 +340,9 @@
 		.t20230403-user-line-time:hover {
 			text-decoration: underline;
 		}
+		.deemphasized-link:hover {
+			text-decoration: underline;
+		}
 		.t20230403-user-line-displayname {
 			float: left;
 			margin-right: 4px;
@@ -361,10 +364,20 @@
 			text-decoration: none;
 			outline-style: none;
 		}
-		.theme-light .t20230403-user-line-handle, .theme-light .t20230403-user-line-punctuation, .theme-light .t20230403-user-line-time {
+		.deemphasized-link {
+			text-decoration: none;
+			outline-style: none;
+		}
+		.theme-light .t20230403-user-line-handle,
+		.theme-light .t20230403-user-line-punctuation,
+		.theme-light .t20230403-user-line-time
+		.theme-light .deemphasized-link {
 			color: rgb(83, 100, 113);
 		}
-		.theme-dim .t20230403-user-line-handle, .theme-dim .t20230403-user-line-punctuation, .theme-dim .t20230403-user-line-time {
+		.theme-dim .t20230403-user-line-handle,
+		.theme-dim .t20230403-user-line-punctuation,
+		.theme-dim .t20230403-user-line-time,
+		.theme-dim .deemphasized-link {
 			color: rgb(139, 152, 165);
 		}
 		.t20230403-user-line-punctuation {
@@ -1452,6 +1465,17 @@
 		}
 		.histogram-mode-button:hover {
 			background-color: #94ddf8;
+		}
+		.timeline-system-message {
+			padding: 20px 16px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			font-size: 15px;
+			font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+		}
+		.theme-dim . {
+			color: rgb(139, 152, 165);
 		}
 
 

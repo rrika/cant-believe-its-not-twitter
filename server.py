@@ -1,7 +1,7 @@
 from db import db, urlmap_entities, urlmap_card, urlmap_profile, OnDisk, InZip, InMemory, InWarc # db will process sys.argv
 
-import os.path, time, datetime, sys, cProfile, pstats, io
-from urllib.parse import urlparse, urlunparse
+import os.path, time, datetime, sys, cProfile, pstats, io, math
+from urllib.parse import urlparse, urlunparse, quote as urlquote, unquote as urlunquote
 server_path = os.path.dirname(__file__)
 sys.path.append(server_path + "/vendor") # use bundled copy of bottle, if system has none
 from bottle import parse_date, request, route, run, static_file, HTTPError, HTTPResponse
@@ -221,6 +221,22 @@ def histogram_from_dates(dates, name):
 		"histogram": histogram
 	}
 
+def query_string_substitute(qs, rkey, rvalue, encoding="utf8"):
+	r = []
+	any_match = False
+	for pair in qs.split('&'):
+		if not pair: continue
+		nv = pair.split('=', 1)
+		key = urlunquote(nv[0].replace('+', ' '), encoding)
+		if key == rkey:
+			r.append(nv[0]+'='+urlquote(rvalue))
+			any_match = True
+		else:
+			r.append(pair)
+	if not any_match:
+		r.append(urlquote(rkey)+'='+urlquote(rvalue))
+	return '&'.join(r)
+
 def paginated_tweets(response):
 	def tweet_date(tweet):
 		if "created_at" in tweet:
@@ -235,6 +251,8 @@ def paginated_tweets(response):
 	qfrom = int(q.get("from", 0))
 	quntil = int(q.get("until", 100000000 + time.time()*1000))
 	qby = q.get("by", None)
+
+	limit = 500
 
 	if "tweets" in response:
 		tweets = response["tweets"]
@@ -261,8 +279,27 @@ def paginated_tweets(response):
 				tweet for rtid, tweet in tweets
 				if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
 		else:
-			response["tweets"] = [tweet for rtid, tweet in tweets[:500]]
-		response["tweets"] = response["tweets"][:500]
+			response["tweets"] = [tweet for rtid, tweet in tweets[:limit]]
+
+		if len(response["tweets"]) > limit:
+			if qby in (None, "rt"):
+				# unfortunately need to recompute
+				only_rtids = [
+					rtid for rtid, tweet in tweets
+					if not tweet or qfrom <= tweet_date({"id_str": str(rtid)}).timestamp()*1000 < quntil]
+				last_rtid = only_rtids[max(limit-1, 0)]
+				next_until = tweet_date({"id_str": str(last_rtid)}).timestamp()*1000
+			elif qby == "ot":
+				last_tweet = response["tweets"][-1]
+				next_until = tweet_date(last_tweet).timestamp()*1000
+			else:
+				assert False
+
+			final_qs = query_string_substitute(request.query_string, "until", str(math.ceil(next_until)))
+			response["final_link"] = {"href": "?"+final_qs, "content": "Load more"}
+
+		response["tweets"] = response["tweets"][:limit]
+
 		return response
 
 	elif "likes" in response:
@@ -285,8 +322,8 @@ def paginated_tweets(response):
 				if not tweet or qfrom <= tweet_date(tweet).timestamp()*1000 < quntil]
 		else:
 			response["tweets"] = [
-				tweet for likeid, (rtid, tweet) in tweets[:500]]
-		response["tweets"] = response["tweets"][:500]
+				tweet for likeid, (rtid, tweet) in tweets[:limit]]
+		response["tweets"] = response["tweets"][:limit]
 		return response
 
 	else:

@@ -40,31 +40,31 @@ class Logic {
             api_call = `profile/${m[1]}`;
             tab = 0;
         }
-        else if ((m = i.match(/profile\/(\d+)\/with_replies$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/with_replies$/)) !== null) {
             api_call = `replies/${m[1]}`;
             tab = 1;
         }
-        else if ((m = i.match(/profile\/(\d+)\/media$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/media$/)) !== null) {
             api_call = `media/${m[1]}`;
             tab = 2;
         }
-        else if ((m = i.match(/profile\/(\d+)\/likes$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/likes$/)) !== null) {
             api_call = `likes/${m[1]}`;
             tab = 3;
         }
-        else if ((m = i.match(/profile\/(\d+)\/bookmarks$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/bookmarks$/)) !== null) {
             api_call = `bookmarks/${m[1]}`;
             tab = 4;
         }
-        else if ((m = i.match(/profile\/(\d+)\/interactions$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/interactions$/)) !== null) {
             api_call = `interactions/${m[1]}`;
             tab = 4;
         }
-        else if ((m = i.match(/profile\/(\d+)\/following$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/following$/)) !== null) {
             api_call = `following/${m[1]}`;
             tab = 101;
         }
-        else if ((m = i.match(/profile\/(\d+)\/followers$/)) !== null) {
+        else if ((m = i.match(/profile\/([^/]+)\/followers$/)) !== null) {
             api_call = `followers/${m[1]}`;
             tab = 100;
         }

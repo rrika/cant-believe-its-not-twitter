@@ -1156,6 +1156,8 @@ class DB:
 	def add_user(self, user, give_timeline_v1=False, give_timeline_v2=False):
 		if "legacy" in user:
 			self.add_legacy_user(user["legacy"], user["rest_id"])
+		if "timeline" in user and give_timeline_v2: # HACK necessary since 2025 Apr 3
+			return user["timeline"]
 		if "timeline" in user:
 			assert give_timeline_v1
 			return user["timeline"]
@@ -1293,6 +1295,8 @@ class DB:
 		elif ct == "TimelinePrompt":
 			pass # todo
 		elif ct == "TimelineSpelling":
+			pass # todo
+		elif ct == "TimelineTrend":
 			pass # todo
 		else:
 			assert False, ct
@@ -1620,6 +1624,8 @@ class DB:
 			pass # todo
 		elif path.endswith("/DeleteRetweet"):
 			pass # todo
+		elif path.endswith("/PinTweet"):
+			pass # todo
 		elif path.endswith("/UnpinTweet"):
 			pass # todo
 		elif path.endswith("/useDMReactionMutationAddMutation"):
@@ -1688,6 +1694,36 @@ class DB:
 			pass # todo
 		elif path.endswith("/BenefitsBadgeCardQuery"):
 			pass # todo
+		elif path.endswith("/CreateGrokConversation"):
+			pass # todo
+		elif path.endswith("/useFetchProfileSections_canViewExpandedProfileQuery"):
+			pass # todo
+		elif path.endswith("/SupportedLanguages"):
+			pass # todo
+		elif path.endswith("/GetGrokCustomizationSettingQuery"):
+			pass # todo
+		elif path.endswith("/feedbackMutation"):
+			pass # todo
+		elif path.endswith("/personalityHooksAllPersonalitiesQuery"):
+			pass # todo
+		elif path.endswith("/TopicCarouselQuery"):
+			pass # todo
+		elif path.endswith("/CommunitiesRankedTimeline"):
+			pass # todo
+		elif path.endswith("/CommunitiesExploreTimeline"):
+			pass # todo
+		elif path.endswith("/isEligibleForVoButtonUpsellQuery"):
+			pass # todo
+		elif path.endswith("/GrokHistory"):
+			pass # todo
+		elif path.endswith("/GrokConversationItemsByRestId"):
+			pass # todo
+		elif path.endswith("/isEligibleForAnalyticsUpsellQuery"):
+			pass # todo
+		elif path.endswith("/SidebarUserRecommendations"):
+			pass # todo
+		elif path.endswith("/NotificationsTimeline"):
+			pass # todo
 		else:
 			assert False, path
 
@@ -1734,7 +1770,8 @@ class DB:
 				"heart_icon", "safety_icon", "retweet_icon", "person_icon",
 				"topic_icon", "bell_icon", "milestone_icon", "recommendation_icon",
 				"histogram_icon", "bird_icon", "spaces_icon", "live_icon",
-				"birdwatch_icon", "lightning_bolt_icon", "trending_icon"), icon_id
+				"birdwatch_icon", "lightning_bolt_icon", "trending_icon",
+				"play_icon"), icon_id
 			if icon_id == "heart_icon":
 				users = [int(entry["user"]["id"]) for entry in t["fromUsers"]] # confirm empty else
 				targets = [int(entry["tweet"]["id"]) for entry in t["targetObjects"]] # confirm empty else

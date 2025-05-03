@@ -5,6 +5,14 @@ import seqalign
 from urllib.parse import urlparse, urlunparse, parse_qs, unquote
 from har import HarStore, OnDisk, InZip, InMemory, InWarc, read_warc
 
+try:
+	datetime.datetime.fromisoformat("2020-12-31T23:59:59.999Z")
+	fromisoformat = datetime.datetime.fromisoformat
+except:
+	# cpython 3.9 and pypy 7.3.17 (using a 3.10 stdlib) struggle with the Z
+	def fromisoformat(x):
+		return datetime.datetime.fromisoformat(x.rstrip("Z"))
+
 class TwitterCookie(http.cookies.SimpleCookie):
 
 	# twitter has quotes in the middle of cookies, like
@@ -875,7 +883,7 @@ class DB:
 		if fs.exists(os.path.join(base, "manifest.js")):
 			manifest = self.load_with_prefix(fs, "manifest.js", "window.__THAR_CONFIG = ")
 			generation_date = manifest["archiveInfo"]["generationDate"] # 2020-12-31T23:59:59.999Z
-			generation_date = datetime.datetime.fromisoformat(generation_date)
+			generation_date = fromisoformat(generation_date)
 			self.time = generation_date.timestamp() * 1000
 		else:
 			self.time = os.path.getmtime(base) * 1000
@@ -1788,7 +1796,7 @@ class DB:
 			url = entry["request"]["url"]
 			response = entry["response"]["content"]
 			if response:
-				time = datetime.datetime.fromisoformat(entry["startedDateTime"])
+				time = fromisoformat(entry["startedDateTime"])
 				item = self.har.get_lhar_entry(entry)
 				if not item:
 					print("missing ", url)
@@ -1828,7 +1836,7 @@ class DB:
 					]
 			context = {
 				"url": wreq["warc-target-uri"],
-				"timeStamp": datetime.datetime.fromisoformat(wres["warc-date"]).timestamp() * 1000,
+				"timeStamp": fromisoformat(wres["warc-date"]).timestamp() * 1000,
 				"cookies": cookies
 			}
 			if b"transfer-encoding: chunked\r\n" in res or \

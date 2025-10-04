@@ -1146,7 +1146,8 @@ class DB:
 		dbuser = self.profiles.setdefault(uid, {})
 		dbuser.update(user)
 
-		self.user_by_handle.setdefault(user["screen_name"], set()).add(uid)
+		if "screen_name" in user:
+			self.user_by_handle.setdefault(user["screen_name"], set()).add(uid)
 
 		if self.uid is not None and user.get("following", False):
 			self.add_follow(self.uid, uid)
@@ -1164,6 +1165,17 @@ class DB:
 		if "timeline_v2" in user:
 			assert give_timeline_v2
 			return user["timeline_v2"]
+		# these are bits of data that got moved out of the legacy profile
+		if "avatar" in user:
+			uid = int(user["rest_id"])
+			dbuser = self.profiles.setdefault(uid, {})
+			dbuser["profile_image_url_https"] = user["avatar"]["image_url"]
+		if "core" in user:
+			uid = int(user["rest_id"])
+			dbuser = self.profiles.setdefault(uid, {})
+			for key, value in user["core"].items():
+				assert key in ("created_at", "name", "screen_name"), "unfamiliar core attribute: "+key
+				dbuser[key] = value
 
 	def add_tweet(self, tweet):
 		heuristically_circle_tweet = False
@@ -1173,7 +1185,9 @@ class DB:
 				frozenset({"__typename", "tweet", "limitedActionResults"}),
 				frozenset({"__typename", "tweet", "tweetInterstitial"}),
 				frozenset({"__typename", "tweet", "limitedActionResults", "tweetInterstitial"}),
-				frozenset({"__typename", "tweet", "limitedActionResults", "softInterventionPivot"})
+				frozenset({"__typename", "tweet", "limitedActionResults", "softInterventionPivot"}),
+				frozenset({"__typename", "tweet", "mediaVisibilityResults"}),
+				frozenset({"__typename", "tweet", "limitedActionResults", "mediaVisibilityResults"})
 			}, json.dumps(tweet)
 			heuristically_circle_tweet = "Circle" in json.dumps(tweet.get("limitedActionResults"))
 			tweet = tweet["tweet"]
@@ -1189,7 +1203,7 @@ class DB:
 			return # TODO, but expected
 		assert "legacy" in tweet, tweet
 		legacy = tweet["legacy"]
-		if card:
+		if card and "legacy" in card:
 			card = card["legacy"]
 			assert card["name"] in ("player", "summary", "summary_large_image", "promo_image_convo", "poll2choice_text_only",
 				"poll3choice_text_only", "poll4choice_text_only", "unified_card", "promo_video_convo", "amplify") or \
@@ -1229,8 +1243,12 @@ class DB:
 			assert set(trusted_friends.keys()) == {"result"}
 			trusted_friends = trusted_friends["result"]
 			assert trusted_friends["__typename"] == "User"
-			assert set(trusted_friends.keys()) == {"__typename", "legacy"}
-			trusted_friends = trusted_friends["legacy"]
+			if "legacy" in trusted_friends:
+				assert set(trusted_friends.keys()) == {"__typename", "legacy"}
+				trusted_friends = trusted_friends["legacy"]
+			else:
+				assert set(trusted_friends.keys()) == {"__typename", "core"}
+				trusted_friends = trusted_friends["core"]
 			assert set(trusted_friends.keys()) == {"screen_name", "name"}
 
 			assert "circle" not in legacy, "overwriting something"
@@ -1267,6 +1285,7 @@ class DB:
 			tweet_results = content["tweet_results"]
 			if not tweet_results: # happens in /Likes
 				content.pop("hasModeratedReplies", None)
+				content.pop("socialContext", None) # can have a pinned but absent tweet
 				assert content == {'itemType': 'TimelineTweet', '__typename': 'TimelineTweet', 'tweet_results': {}}, content
 				return
 			tweet = tweet_results["result"]
@@ -1439,6 +1458,8 @@ class DB:
 			pass
 		elif path.endswith("/UserTweets"):
 			tweet_timeline = self.add_user(data["user"]["result"], give_timeline_v2=True)
+			if "errors" in self.toplevel and "timeline" not in tweet_timeline:
+				return
 			self.add_with_instructions(tweet_timeline["timeline"])
 		elif path.endswith("/UserTweetsAndReplies"):
 			tweet_timeline = self.add_user(data["user"]["result"], give_timeline_v2=True)
@@ -1723,6 +1744,20 @@ class DB:
 		elif path.endswith("/SidebarUserRecommendations"):
 			pass # todo
 		elif path.endswith("/NotificationsTimeline"):
+			pass # todo
+		elif path.endswith("/DmAllSearchSlice"):
+			pass # todo
+		elif path.endswith("/useFetchProfileSections_profileSectionsCountQuery"):
+			pass # todo
+		elif path.endswith("/useStoryTopicQuery"):
+			pass # todo
+		elif path.endswith("/VOCardsQuery"):
+			pass # todo
+		elif path.endswith("/useTotalAdCampaignsForUserQuery"):
+			pass # todo
+		elif path.endswith("/useUpsellTrackingMutation"):
+			pass # todo
+		elif path.endswith("/CommunityQuery"):
 			pass # todo
 		else:
 			assert False, path

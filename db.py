@@ -1882,6 +1882,8 @@ class DB:
 		for entry in lhar["log"]["entries"]:
 			url = entry["request"]["url"]
 			response = entry["response"]["content"]
+			if entry["request"].get("method", None) == "OPTIONS":
+				continue
 			if response:
 				time = fromisoformat(entry["startedDateTime"])
 				item = self.har.get_lhar_entry(entry)
@@ -1912,6 +1914,10 @@ class DB:
 		end = f.tell()
 		for (wreq, req), (wres, res, item) in r:
 			cookies = None
+			if req[0].startswith(b"OPTIONS "):
+				continue
+			if b" 403 " in res[0]:
+				continue
 			for line in req[1:]:
 				m = header_re.match(line)
 				name = m.group(1)

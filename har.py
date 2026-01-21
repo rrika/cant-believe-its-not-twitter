@@ -29,6 +29,20 @@ class InMemory:
 		elif isinstance(data, bytes):
 			return io.BytesIO(data)
 
+def join_chunks(data):
+	chunks = []
+	i = 0
+	while i < len(data):
+		j = data.index(b"\r", i)
+		if not data[i:j]:
+			break
+		chunk_size = int(data[i:j], 16)
+		j += 2
+		i = j+chunk_size
+		chunks.append(data[j:i])
+		i += 2
+	return b"".join(chunks)
+
 class InWarc:
 	def __init__(self, f, offset, size, mode="rb", encoding=None, chunked=False):
 		self.f = f
@@ -40,10 +54,11 @@ class InWarc:
 		assert mode in ("r", "rb")
 
 	def open(self):
-		if self.chunked:
-			raise Exception("chunking not supported")
 		self.f.seek(self.offset)
 		data = self.f.read(self.size)
+		if self.chunked:
+			data = join_chunks(data)
+
 		if self.encoding == "gzip":
 			data = gzip.decompress(data)
 		elif self.encoding == "br":
@@ -220,7 +235,8 @@ def read_warc(f, size=None, responses=None):
 					encoding = h[18:-2].decode("ascii") # HACK
 				if h.lower().startswith(b"content-type: "):
 					mime = h[14:-2].decode("ascii") # HACK
-			chunked = b"transfer-encoding: chunked\r\n" in response_headers
+			chunked = b"transfer-encoding: chunked\r\n" in response_headers or \
+			          b"Transfer-Encoding: chunked\r\n" in response_headers
 			payload = InWarc(f, payload_begin, offset + length - payload_begin, mode="r",
 				encoding=encoding, chunked=chunked)
 			if mime:

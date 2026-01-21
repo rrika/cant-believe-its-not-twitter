@@ -1926,9 +1926,6 @@ class DB:
 				"timeStamp": fromisoformat(wres["warc-date"]).timestamp() * 1000,
 				"cookies": cookies
 			}
-			if b"transfer-encoding: chunked\r\n" in res or \
-			   b"Transfer-Encoding: chunked\r\n" in res:
-				continue
 			if res[0] in (b"HTTP/1.1 404 Not Found\r\n", b"HTTP/1.1 304 Not Modified\r\n"):
 				continue
 			if "//localhost" in context["url"]:

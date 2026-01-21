@@ -1210,7 +1210,12 @@ class DB:
 				card["name"].endswith(":live_event") or \
 				card["name"].endswith(":broadcast") or \
 				card["name"].endswith(":message_me") or \
+				card["name"].endswith(":periscope_broadcast") or \
+				card["name"].endswith(":poll_choice_images") or \
 				card["name"].endswith(":audiospace"), (tweet, card, card["name"])
+			# examples: 
+			# https://x.com/WHO/status/1237774421307228160     periscope_broadcast
+			# https://x.com/miz0521/status/2011637910693622206 poll_choice_images (non-public feature?)
 			card["binding_values"] = {
 				keyvalue["key"]: keyvalue["value"]
 				for keyvalue in card["binding_values"]
@@ -1758,6 +1763,16 @@ class DB:
 		elif path.endswith("/useUpsellTrackingMutation"):
 			pass # todo
 		elif path.endswith("/CommunityQuery"):
+			pass # todo
+		elif path.endswith("/AboutAccountQuery"):
+			pass # todo
+		elif path.endswith("/XChatDmSettingsQuery"):
+			pass # todo
+		elif path.endswith("/AvcallingButtonsQuery"):
+			pass # todo
+		elif path.endswith("/useReadableMessagesSnapshotMutation"):
+			pass # todo
+		elif path.endswith("/UserArticlesTweets"):
 			pass # todo
 		else:
 			assert False, path
